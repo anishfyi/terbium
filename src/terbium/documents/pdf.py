@@ -18,6 +18,16 @@ from .base import DocumentAdapter, register
 _BOLD_FLAG = 1 << 4
 
 
+def _strip_pua(text: str) -> str:
+    """Drop private-use glyphs (U+E000..U+F8FF).
+
+    Catalogues encode material icons (FSC, oiled, varnished) as private-use font
+    glyphs that leak into extracted text as noise like 'FSC\\ue514'. The icons
+    themselves belong to the vision lane, not the text.
+    """
+    return "".join(c for c in text if not (0xE000 <= ord(c) <= 0xF8FF))
+
+
 def _span_words(span: dict) -> List[Word]:
     """Split a span into whitespace tokens, distributing x by character offset.
 
@@ -25,7 +35,7 @@ def _span_words(span: dict) -> List[Word]:
     Because catalogue article numbers are fixed-width digits, this places SKU
     cells accurately enough to align them into columns.
     """
-    text = span.get("text", "")
+    text = _strip_pua(span.get("text", ""))
     if not text.strip():
         return []
     x0, y0, x1, y1 = span["bbox"]
