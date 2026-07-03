@@ -17,11 +17,26 @@ def main(argv=None) -> int:
     ap.add_argument("file", help="path to a " + "/".join(supported_extensions()) + " file")
     ap.add_argument("--schema", default="generic", help="generic (default) or furniture")
     ap.add_argument("--json", metavar="OUT", help="write records as JSON to this path (or - for stdout)")
+    ap.add_argument("--images", metavar="DIR", help="extract product images into DIR (+ a manifest.csv)")
     ap.add_argument("--ai", action="store_true", help="enable the AI lane using env keys")
     ap.add_argument("--tier", choices=["haiku", "sonnet", "opus"], help="pin the AI model tier")
     ap.add_argument("--limit", type=int, default=12, help="how many records to preview")
     ap.add_argument("--version", action="version", version=f"terbium {__version__}")
     args = ap.parse_args(argv)
+
+    if args.images:
+        from .extract import export_images
+        import csv as _csv
+
+        manifest = export_images(args.file, args.images)
+        cols = ["page", "product", "collection", "file", "format", "width_px",
+                "height_px", "colorspace", "bytes", "dpi", "dominant_color", "bbox"]
+        with open(f"{args.images}/manifest.csv", "w", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=cols)
+            w.writeheader()
+            w.writerows(manifest)
+        print(f"extracted {len(manifest)} images -> {args.images}/ (+ manifest.csv)")
+        return 0
 
     ai = AI(force_tier=args.tier) if args.ai else None
     doc = parse(args.file, schema=args.schema, ai=ai)

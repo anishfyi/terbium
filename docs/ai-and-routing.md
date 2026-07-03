@@ -48,9 +48,12 @@ Some metadata lives only in the pixels: material and care icons (FSC, oiled,
 varnished) and finish swatches. Read them explicitly:
 
 ```python
-info = terbium.read_images("catalogue.pdf", page=59, ai=ai)
+info = terbium.read_vision("catalogue.pdf", page=59, ai=ai)
 # {"icons": ["FSC", "varnished"], "finishes": ["off white", "ginger", ...]}
 ```
+
+(For extracting the product photos themselves as files, see
+[images.md](images.md) and `terbium.export_images`, which needs no AI.)
 
 **A note on Nano Banana.** Gemini 2.5 Flash Image ("Nano Banana") is an image
 generation and editing model, not an extraction one. terbium uses a Gemini or
