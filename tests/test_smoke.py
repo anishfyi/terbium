@@ -238,6 +238,26 @@ def test_ai_enrich_plumbing(monkeypatch):
     assert r.confidence == 0.95
 
 
+def test_feed_exporters():
+    import json
+    from terbium.export_feed import to_shopify_csv, to_pim_json
+    from terbium.model.record import Record
+
+    recs = [Record(
+        sku="RG-1001",
+        fields={"name": "Anatolia Kilim", "color": "Terracotta", "color_family": "red",
+                "material": "Wool", "material_family": "textile", "price_amount": 249.0,
+                "category": "rug"},
+        source_page=0, confidence=0.9,
+    )]
+    csv_text = to_shopify_csv(recs)
+    assert csv_text.startswith("Handle,Title")
+    assert "anatolia-kilim" in csv_text and "RG-1001" in csv_text and "249.0" in csv_text
+    assert "red, textile" in csv_text            # families become tags
+    pim = json.loads(to_pim_json(recs))
+    assert pim[0]["sku"] == "RG-1001" and pim[0]["color_family"] == "red"
+
+
 def test_csv_roundtrip(tmp_path):
     import terbium
 
