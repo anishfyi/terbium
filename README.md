@@ -19,6 +19,29 @@ and only reaches for an AI model when the algorithm cannot be sure.
 
 ---
 
+## The one thing terbium does
+
+**Point it at any vendor catalogue and get back a table of products, each with its
+name, its SKU, its materials or ingredients, and its image. Then a CSV.**
+
+```python
+import terbium
+
+rows = terbium.build_catalog("vendor_catalogue.pdf", images_dir="images/")
+terbium.to_catalog_csv(rows, "catalogue.csv")
+# rows: {"sku": "RG-1001", "name": "Anatolia Kilim",
+#        "materials": "wool", "image": "Anatolia_Kilim.jpeg", "page": 12}
+```
+
+Each product photo anchors a row: terbium extracts the image, names it from the
+label beneath it, and mines the nearby text for the SKU and the materials. Clean
+catalogues come out complete with no key; for a visual brochure that buries the
+name in a title and the material in a paragraph, pass `ai=terbium.AI()` and a
+vision model reads each photo plus the page text to fill the blanks. See
+[docs/catalog.md](docs/catalog.md).
+
+## Underneath: structure from geometry
+
 A document carries most of its content as text but almost none of its structure.
 A table in a PDF, a financial grid, a spec sheet, a schedule, a furniture
 catalogue's size x finish matrix, is laid out for the eye; flatten it to text and

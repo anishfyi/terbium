@@ -10,6 +10,7 @@ confidence and only reaches for AI when it is genuinely stuck.
 from __future__ import annotations
 
 from .api import parse, supported_extensions, DEFAULT_THRESHOLD
+from .catalog import build_catalog, to_catalog_csv
 from .extract import export_images
 from .export_feed import to_shopify_csv, to_pim_json
 from .harness import AI
@@ -19,10 +20,12 @@ from .model.document import ParsedDocument, Stats
 from .model.record import Record
 from .model.table import ExtractedTable
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 __all__ = [
     "parse",
+    "build_catalog",
+    "to_catalog_csv",
     "export_images",
     "enrich_products",
     "to_shopify_csv",
