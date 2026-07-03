@@ -204,6 +204,7 @@ def test_ai_enrich_plumbing(monkeypatch):
     # verify the AI enrichment layer end-to-end with a stubbed provider (no key)
     from terbium.harness import product_ai
     from terbium.harness.ai import AI
+    from terbium.model.record import Record
 
     class Stub:
         def complete(self, prompt, system, tier, image_png=None):
