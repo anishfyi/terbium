@@ -60,19 +60,16 @@ def _rows_to_table(rows: List[List[str]], has_header: bool) -> Optional[Extracte
     ncol = max(len(r) for r in rows)
     rows = [r + [""] * (ncol - len(r)) for r in rows]
     if has_header:
-        header = rows[0]
+        col_headers = rows[0]
         body = rows[1:]
-        col_headers = header[1:] if ncol > 1 else header
     else:
+        col_headers = [f"col{i + 1}" for i in range(ncol)]
         body = rows
-        col_headers = [f"col{i + 1}" for i in range(ncol - 1 if ncol > 1 else ncol)]
-    row_headers = [r[0] for r in body] if ncol > 1 else ["" for _ in body]
-    cells = [[(v or None) for v in (r[1:] if ncol > 1 else r)] for r in body]
     return ExtractedTable(
         title=None,
-        row_headers=row_headers,
+        row_headers=[""] * len(body),
         col_headers=[h or f"col{i + 1}" for i, h in enumerate(col_headers)],
-        cells=cells,
+        cells=[[(v or None) for v in r] for r in body],
         source_page=0,
         kind="grid",
     )

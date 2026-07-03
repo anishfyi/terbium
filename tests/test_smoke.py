@@ -167,6 +167,39 @@ def test_image_label_association():
     assert _associate((100, 50, 300, 250), []) is None
 
 
+def test_product_schema_is_category_agnostic():
+    # a bag pricelist with headers unlike any furniture catalogue
+    from terbium.schema.product import ProductSchema
+
+    t = ExtractedTable(
+        title=None,
+        row_headers=["", ""],
+        col_headers=["Style Code", "Name", "Material", "Capacity", "Colour", "MRP"],
+        cells=[
+            ["BG-22", "Weekender", "Leather", "35L", "Tan", "₹12999"],
+            ["BG-23", "City Tote", "Canvas", "14L", "Olive", "₹4499"],
+        ],
+        source_page=0,
+        kind="grid",
+    )
+    r = ProductSchema().build_records([t])[0]
+    assert r.sku == "BG-22"
+    assert r.fields["name"] == "Weekender"
+    assert r.fields["material"] == "Leather"
+    assert r.fields["color"] == "Tan"
+    assert r.fields["price_amount"] == 12999.0 and r.fields["currency"] == "INR"
+    assert r.fields["Capacity"] == "35L"     # category-specific attribute preserved
+
+
+def test_product_header_longest_match():
+    # "Pack Size" must map to quantity, not dimensions (which also contains "size")
+    from terbium.schema.product import _map_header
+
+    assert _map_header("Pack Size") == "quantity"
+    assert _map_header("Size") == "dimensions"
+    assert _map_header("Article Number") == "sku"
+
+
 def test_csv_roundtrip(tmp_path):
     import terbium
 

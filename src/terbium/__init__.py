@@ -17,7 +17,7 @@ from .model.document import ParsedDocument, Stats
 from .model.record import Record
 from .model.table import ExtractedTable
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "parse",
