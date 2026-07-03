@@ -444,6 +444,11 @@
         on it and parses them cleanly and cheaply.
       </p>
       <p class="cards-note">
+        <b>The detector is content-agnostic.</b> Any column-aligned table, a financial grid, a spec
+        sheet, a schedule, or a furniture size x finish matrix, reconstructs the same way. terbium is
+        a general parser first; the furniture schema is an opt-in interpretation on top, not the limit.
+      </p>
+      <p class="cards-note">
         <b>Not every PDF is a matrix.</b> A lookbook, a grid of photos with a name under each, is
         reconstructed as a <b>label grid</b>: one record per product, grouped by collection. And when
         a page is image-only, terbium does not return nothing, it reports exactly which pages need

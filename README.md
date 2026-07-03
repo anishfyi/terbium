@@ -19,12 +19,13 @@ and only reaches for an AI model when the algorithm cannot be sure.
 
 ---
 
-A vendor document carries most of its content as text but almost none of its
-structure. A furniture catalogue page is a 2-D matrix: rows are sizes, columns
-are finishes, and the cells are article numbers. Flatten it to text and the grid
-is gone, the columns collapse into a single line, and the numbers lose their
-meaning. terbium rebuilds that structure from the raw position of every word,
-and it is honest about how sure it is.
+A document carries most of its content as text but almost none of its structure.
+A table in a PDF, a financial grid, a spec sheet, a schedule, a furniture
+catalogue's size x finish matrix, is laid out for the eye; flatten it to text and
+the columns collapse into a single line and the grid is gone. terbium rebuilds
+that structure from the raw position of every word, on **any** column-aligned
+table, and it is honest about how sure it is. The default detector is
+content-agnostic; furniture is the worked example, not the limit.
 
 Most parsers do one of two things: they fail silently on the hard pages, or they
 throw the whole document at an LLM and bill you for the easy pages too. terbium

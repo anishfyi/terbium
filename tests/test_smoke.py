@@ -72,6 +72,48 @@ def test_sparse_matrix_scores_lower():
     assert any("sparse" in r for r in reasons)
 
 
+def test_generic_table_detector_is_content_agnostic():
+    # a plain financial table: no dimensions, no SKUs. The default detector must
+    # still reconstruct it purely from column geometry.
+    from terbium.layout.tables import detect_tables
+    from terbium.layout.lines import cluster_lines
+
+    def w(t, x, y):
+        return Word(text=t, x0=x, y0=y, x1=x + 8 * len(t), y1=y + 10, size=11)
+
+    words = [
+        w("Region", 60, 50), w("Q1", 240, 50), w("Growth", 380, 50),
+        w("North", 60, 90), w("1204", 240, 90), w("28%", 380, 90),
+        w("South", 60, 122), w("980", 240, 122), w("14%", 380, 122),
+    ]
+    page = Page(index=0, width=520, height=700, words=words, source_kind="pdf")
+    tables = detect_tables(cluster_lines(words), page)
+    assert len(tables) == 1
+    t = tables[0]
+    assert t.col_headers == ["Region", "Q1", "Growth"]
+    assert t.cells[0] == ["North", "1204", "28%"]
+    assert t.cells[1] == ["South", "980", "14%"]
+
+
+def test_prose_columns_are_not_a_table():
+    # two-column prose must not be mistaken for a data table
+    from terbium.layout.tables import detect_tables
+    from terbium.layout.lines import cluster_lines
+
+    def w(t, x, y):
+        return Word(text=t, x0=x, y0=y, x1=x + 7 * len(t), y1=y + 10, size=11)
+
+    left = "For thirty years we have made furniture shaped by material and purpose".split()
+    right = "Each piece is developed to be lived with and to age gracefully over time".split()
+    words = []
+    for i, tok in enumerate(left):
+        words.append(w(tok, 40 + (i % 6) * 30, 60 + (i // 6) * 20))
+    for i, tok in enumerate(right):
+        words.append(w(tok, 300 + (i % 6) * 30, 60 + (i // 6) * 20))
+    page = Page(index=0, width=520, height=700, words=words, source_kind="pdf")
+    assert detect_tables(cluster_lines(words), page) == []
+
+
 def test_label_grid_extraction():
     # a synthetic lookbook page: a collection title + a 2-column grid of names,
     # one of which wraps onto a second line.

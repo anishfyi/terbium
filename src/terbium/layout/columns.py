@@ -16,8 +16,10 @@ def split_columns(page: Page) -> List[List[Word]]:
     words = page.words
     if not words:
         return [words]
-    # only landscape pages are plausible spreads
-    if page.width <= page.height * 1.15:
+    # Only a wide, two-up spread splits. A normal landscape page (a 16:9 slide,
+    # a letter-landscape table) is NOT a spread and must stay whole, or a single
+    # table gets sliced down the middle.
+    if page.width <= page.height * 1.7:
         return [words]
     w = page.width
     lo, hi = 0.46 * w, 0.54 * w

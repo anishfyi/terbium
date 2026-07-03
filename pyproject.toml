@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "terbium-parse"
-version = "0.3.0"
+version = "0.4.0"
 description = "A god-level algorithmic multi-file parser (PDF/PPTX/XLSX/CSV) that scores its own confidence and only reaches for AI when it is genuinely stuck."
 readme = "README.md"
 requires-python = ">=3.9"
