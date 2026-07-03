@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>terbium - a god-level algorithmic multi-file parser</title>
+  <meta name="description" content="terbium reconstructs a document's structure geometrically, scores its own confidence per record, and only calls an AI model when it is genuinely stuck. Parses PDF, PPTX, XLSX, CSV." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg:#000000; --bg-1:#0b0b0d; --bg-2:#111114; --bg-3:#17171b;
+      --line:#1f1f25; --line-2:#2b2b33;
+      --fg:#f0f0f2; --fg-dim:#9a9aa6; --fg-faint:#585862;
+      --accent:#f4f4f6; --accent-2:#babac4;
+      --c-pdf:#f5c451; --c-pptx:#ff6f5e; --c-xlsx:#6ee7a0; --c-csv:#8b9cff; --c-ai:#e07ad0;
+      --display:"Bricolage Grotesque",sans-serif;
+      --sans:"Hanken Grotesk",system-ui,sans-serif;
+      --mono:"Space Mono",ui-monospace,monospace;
+
+      --maxw:1160px;
+      --pad:clamp(20px,5vw,64px);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-text-size-adjust:100%}
+    body{
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--sans);
+      font-size:17px;
+      line-height:1.6;
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ---------- background grid + glow ---------- */
+    .bg-fx{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+    .bg-fx .grid{
+      position:absolute;inset:-2px;
+      background-image:
+        linear-gradient(to right,var(--line) 1px,transparent 1px),
+        linear-gradient(to bottom,var(--line) 1px,transparent 1px);
+      background-size:48px 48px;
+      opacity:.5;
+      -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000 0%,transparent 78%);
+      mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000 0%,transparent 78%);
+    }
+    .bg-fx .glow{
+      position:absolute;top:-360px;left:50%;transform:translateX(-50%);
+      width:1000px;height:760px;
+      background:radial-gradient(circle at 50% 40%,rgba(186,186,196,.10),transparent 62%);
+      filter:blur(6px);
+    }
+
+    /* ---------- layout ---------- */
+    .wrap{max-width:var(--maxw);margin:0 auto;padding-left:var(--pad);padding-right:var(--pad)}
+    section{position:relative}
+
+    /* ---------- header ---------- */
+    header{
+      position:sticky;top:0;z-index:50;
+      background:rgba(0,0,0,.62);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav{
+      display:flex;align-items:center;gap:20px;
+      height:64px;
+    }
+    .brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+    .wordmark{
+      font-family:var(--display);font-weight:800;font-size:23px;
+      letter-spacing:-0.04em;line-height:1;color:var(--fg);
+      display:inline-flex;align-items:baseline;
+    }
+    .wordmark .dot{
+      width:7px;height:7px;border-radius:50%;background:var(--accent);
+      display:inline-block;margin-left:3px;align-self:center;
+    }
+    .microtag{
+      font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
+      text-transform:uppercase;color:var(--fg-faint);
+      border-left:1px solid var(--line-2);padding-left:12px;
+      white-space:nowrap;
+    }
+    .nav-links{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .nav-links a{
+      font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--fg-dim);
+      padding:8px 12px;border-radius:8px;transition:color .15s ease,background .15s ease;
+    }
+    .nav-links a:hover{color:var(--fg);background:var(--bg-2)}
+    .nav-links a.btn-gh{
+      color:var(--fg);border:1px solid var(--line-2);
+    }
+    .nav-links a.btn-gh:hover{border-color:var(--fg-faint);background:var(--bg-3)}
+
+    /* ---------- shared bits ---------- */
+    .kicker{
+      display:inline-flex;align-items:center;gap:10px;
+      font-family:var(--mono);font-size:11.5px;letter-spacing:.3em;
+      text-transform:uppercase;color:var(--fg-dim);
+    }
+    .kicker .pdot{
+      width:7px;height:7px;border-radius:50%;background:var(--accent);
+      box-shadow:0 0 0 0 rgba(244,244,246,.5);
+      animation:pulse 2.4s infinite;
+    }
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(244,244,246,.45)}
+      70%{box-shadow:0 0 0 9px rgba(244,244,246,0)}
+      100%{box-shadow:0 0 0 0 rgba(244,244,246,0)}
+    }
+    @media (prefers-reduced-motion:reduce){
+      .kicker .pdot{animation:none}
+    }
+
+    .btns{display:flex;flex-wrap:wrap;gap:14px}
+    .btn{
+      display:inline-flex;align-items:center;gap:10px;
+      font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+      text-transform:uppercase;
+      padding:14px 22px;border-radius:10px;
+      border:1px solid transparent;transition:transform .12s ease,background .15s ease,border-color .15s ease;
+      cursor:pointer;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:var(--accent);color:#0a0a0c;font-weight:700}
+    .btn-primary:hover{background:#ffffff}
+    .btn-ghost{border-color:var(--line-2);color:var(--fg)}
+    .btn-ghost:hover{border-color:var(--fg-faint);background:var(--bg-2)}
+    .btn .arr{font-family:var(--sans);font-weight:600}
+
+    .readchip{
+      display:inline-flex;align-items:center;gap:9px;
+      font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+      text-transform:uppercase;color:var(--fg-dim);
+      border:1px solid var(--line);border-radius:999px;
+      padding:7px 14px;background:var(--bg-1);
+    }
+    .readchip .swatch{width:8px;height:8px;border-radius:2px}
+
+    /* ---------- hero ---------- */
+    .hero{padding-top:clamp(72px,12vw,128px);padding-bottom:clamp(48px,7vw,88px)}
+    .hero h1{
+      font-family:var(--display);font-weight:800;
+      font-size:clamp(38px,7vw,80px);line-height:1.02;letter-spacing:-0.03em;
+      margin:26px 0 0;max-width:16ch;
+    }
+    .hero h1 .muted{color:var(--fg-dim)}
+    .hero .sub{
+      margin-top:26px;max-width:60ch;
+      font-size:clamp(16px,2.2vw,19px);color:var(--fg-dim);line-height:1.62;
+    }
+    .hero .sub b{color:var(--fg);font-weight:600}
+    .hero .btns{margin-top:36px}
+
+    /* ---------- readout row ---------- */
+    .readout{
+      border:1px solid var(--line);border-radius:16px;background:var(--bg-1);
+      margin-top:clamp(32px,5vw,52px);overflow:hidden;
+    }
+    .readout .ro-head{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      padding:16px 22px;border-bottom:1px solid var(--line);
+      font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint);
+    }
+    .readout .ro-head .label{color:var(--fg-dim)}
+    .ro-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+    .ro-cell{padding:26px 22px;border-right:1px solid var(--line)}
+    .ro-cell:last-child{border-right:none}
+    .ro-cell .num{
+      font-family:var(--display);font-weight:700;font-size:clamp(30px,4.4vw,46px);
+      letter-spacing:-0.02em;line-height:1;color:var(--fg);
+    }
+    .ro-cell .cap{
+      margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--fg-dim);
+    }
+    @media (max-width:720px){
+      .ro-grid{grid-template-columns:repeat(2,1fr)}
+      .ro-cell:nth-child(2){border-right:none}
+      .ro-cell:nth-child(1),.ro-cell:nth-child(2){border-bottom:1px solid var(--line)}
+    }
+
+    /* ---------- generic section spacing ---------- */
+    .band{padding:clamp(56px,9vw,110px) 0;border-top:1px solid var(--line)}
+    .band h2{
+      font-family:var(--display);font-weight:800;
+      font-size:clamp(28px,4.6vw,46px);line-height:1.05;letter-spacing:-0.025em;
+      margin:20px 0 0;max-width:20ch;
+    }
+    .band .lead{margin-top:18px;max-width:62ch;color:var(--fg-dim);font-size:clamp(15px,2vw,18px)}
+    .band .lead b{color:var(--fg);font-weight:600}
+
+    /* ---------- terminal block ---------- */
+    .terminal{
+      margin-top:34px;border:1px solid var(--line-2);border-radius:14px;
+      background:linear-gradient(180deg,var(--bg-2),var(--bg-1));
+      overflow:hidden;
+    }
+    .term-bar{
+      display:flex;align-items:center;gap:14px;
+      padding:12px 16px;border-bottom:1px solid var(--line);background:var(--bg-3);
+    }
+    .term-dots{display:flex;gap:7px}
+    .term-dots i{width:11px;height:11px;border-radius:50%;display:inline-block}
+    .term-dots i:nth-child(1){background:#ff6f5e}
+    .term-dots i:nth-child(2){background:#f5c451}
+    .term-dots i:nth-child(3){background:#6ee7a0}
+    .term-title{
+      font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-faint);
+    }
+    .term-body{padding:22px 20px;overflow-x:auto}
+    .term-body pre{
+      font-family:var(--mono);font-size:14px;line-height:1.85;color:var(--fg);
+      white-space:pre;min-width:0;
+    }
+    .term-body .ok{color:var(--c-xlsx)}
+    .term-body .warn{color:var(--c-pdf)}
+    .term-body .hint{color:var(--c-ai)}
+    .term-body .sep{color:var(--fg-faint)}
+    .term-body .tier{color:var(--fg);font-weight:700}
+
+    /* ---------- format cards ---------- */
+    .cards{
+      margin-top:44px;display:grid;gap:18px;
+      grid-template-columns:repeat(2,1fr);
+    }
+    @media (max-width:760px){.cards{grid-template-columns:1fr}}
+    .card{
+      position:relative;border:1px solid var(--line);border-radius:16px;
+      background:var(--bg-1);padding:26px 24px 28px;overflow:hidden;
+      transition:border-color .18s ease,transform .18s ease;
+    }
+    .card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+    .card::before{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(120% 90% at 100% 0%,var(--lane) 0%,transparent 42%);
+      opacity:.10;
+    }
+    .card .lane-bar{position:absolute;top:0;left:0;height:3px;width:100%;background:var(--lane);opacity:.85}
+    .card .ctop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .card .fmt{
+      font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--lane);
+    }
+    .card .chip{
+      font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint);
+      border:1px solid var(--line);border-radius:999px;padding:5px 10px;
+    }
+    .card h3{
+      font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-0.02em;
+      margin:18px 0 0;color:var(--fg);
+    }
+    .card p{margin-top:10px;color:var(--fg-dim);font-size:15px;line-height:1.58}
+    .cards-note{
+      margin-top:22px;color:var(--fg-dim);font-size:14.5px;max-width:70ch;
+      border-left:2px solid var(--line-2);padding-left:16px;
+    }
+    .cards-note b{color:var(--fg);font-weight:600}
+
+    /* ---------- quickstart ---------- */
+    .code{
+      margin-top:32px;border:1px solid var(--line);border-radius:14px;background:var(--bg-1);overflow:hidden;
+    }
+    .code .cbar{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg-2);
+    }
+    .code .cbar .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint)}
+    .code .cbody{padding:20px 18px;overflow-x:auto}
+    .code pre{font-family:var(--mono);font-size:13.5px;line-height:1.85;white-space:pre;color:var(--fg)}
+    .code .cmt{color:var(--fg-faint)}
+    .code .kw{color:var(--c-csv)}
+    .code .str{color:var(--c-xlsx)}
+    .code .fn{color:var(--fg)}
+    .code .rule{color:var(--fg-faint)}
+
+    /* ---------- routing ---------- */
+    .routing{
+      margin-top:32px;display:grid;gap:14px;grid-template-columns:repeat(3,1fr);
+    }
+    @media (max-width:760px){.routing{grid-template-columns:1fr}}
+    .route{
+      border:1px solid var(--line);border-radius:12px;background:var(--bg-1);padding:18px 18px;
+    }
+    .route .rk{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint)}
+    .route .rv{
+      font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-0.01em;margin-top:8px;
+      display:flex;align-items:center;gap:9px;
+    }
+    .route .rv .d{width:8px;height:8px;border-radius:50%}
+    .route p{margin-top:8px;color:var(--fg-dim);font-size:13.5px;line-height:1.5}
+    .vision-note{
+      margin-top:20px;font-size:14.5px;color:var(--fg-dim);
+      display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;
+    }
+    .vision-note .swatch{width:9px;height:9px;border-radius:3px;background:var(--c-ai)}
+    .vision-note b{color:var(--fg);font-weight:600}
+
+    /* ---------- footer ---------- */
+    footer{border-top:1px solid var(--line);padding:clamp(40px,6vw,64px) 0 48px}
+    .foot{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;justify-content:space-between}
+    .foot .fbrand .wordmark{font-size:20px}
+    .foot .built{margin-top:12px;color:var(--fg-dim);font-size:14px}
+    .foot .built a{color:var(--fg);border-bottom:1px solid var(--line-2)}
+    .foot-links{display:flex;flex-wrap:wrap;gap:8px 22px}
+    .foot-links a{
+      font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim);
+    }
+    .foot-links a:hover{color:var(--fg)}
+    .foot .tile{
+      font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);
+      border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-fx" aria-hidden="true">
+    <div class="glow"></div>
+    <div class="grid"></div>
+  </div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header>
+    <div class="wrap nav">
+      <div class="brand">
+        <span class="wordmark">terbium<span class="dot"></span></span>
+        <span class="microtag">Multi-File Parser</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#quickstart">Docs</a>
+        <a href="https://github.com/anishfyi/terbium" class="btn-gh">GitHub</a>
+        <a href="https://github.com/anishfyi/trove">Trove</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>Algorithmic first - AI only when stuck</span>
+      <h1>It parses the file.<br /><span class="muted">It knows when it can't.</span></h1>
+      <p class="sub">
+        terbium reconstructs a document's structure geometrically, detecting columns, rows,
+        and 2-D matrices from the raw position of the text. It <b>scores its own confidence
+        on every record</b> and only reaches for an AI model when it is genuinely stuck. Give
+        it no key and it will not fail silently or burn tokens, it tells you so, <b>by name</b>,
+        and which model tier it recommends.
+      </p>
+      <div class="btns">
+        <a href="#quickstart" class="btn btn-primary">Get started <span class="arr">-&gt;</span></a>
+        <a href="https://github.com/anishfyi/terbium" class="btn btn-ghost">View on GitHub</a>
+      </div>
+
+      <!-- readout row -->
+      <div class="readout">
+        <div class="ro-head">
+          <span class="pdot" style="width:7px;height:7px;border-radius:50%;background:var(--c-pdf);display:inline-block"></span>
+          <span class="label">What one vendor PDF actually hides</span>
+          <span style="margin-left:auto">catalogue.pdf</span>
+        </div>
+        <div class="ro-grid">
+          <div class="ro-cell"><div class="num">192</div><div class="cap">Pages</div></div>
+          <div class="ro-cell"><div class="num">964</div><div class="cap">Unique SKUs</div></div>
+          <div class="ro-cell"><div class="num">505</div><div class="cap">Dimension rows</div></div>
+          <div class="ro-cell"><div class="num">1157</div><div class="cap">Images</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ASKS BY NAME ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>Confidence, not guesswork</span>
+      <h2>It asks for help by name.</h2>
+      <p class="lead">
+        Every run ends with a verdict, not a stack trace. When the geometry is unambiguous,
+        terbium finishes cold with zero tokens spent. When a handful of pages are genuinely
+        hard, it says exactly which ones, <b>why</b>, and what to hand it next.
+      </p>
+
+      <div class="terminal">
+        <div class="term-bar">
+          <span class="term-dots"><i></i><i></i><i></i></span>
+          <span class="term-title">terbium - run summary</span>
+        </div>
+        <div class="term-body">
+<pre><span class="ok">terbium: 47/52 products parsed confidently.</span>
+<span class="warn">5 pages have ambiguous matrices (orphan SKUs, uncertain column alignment).</span>
+<span class="hint">-&gt; set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)</span>   <span class="sep">&middot;</span>   recommended tier: <span class="tier">Opus</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FORMAT CARDS ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>Four formats, one model of the page</span>
+      <h2>Every file, reduced to columns, rows, and matrices.</h2>
+
+      <div class="cards">
+        <div class="card" style="--lane:var(--c-pdf)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">PDF</span><span class="chip">Geometry engine</span></div>
+          <h3>Word-level geometry</h3>
+          <p>Reads the raw x/y position of every word and rebuilds the columns, rows, and 2-D matrices the page never labelled. This is where the full structural engine runs.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-pptx)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">PPTX</span><span class="chip">Native structure</span></div>
+          <h3>Native slides, tables, images</h3>
+          <p>Walks the real slide tree, pulling text frames, native tables, and embedded images straight from the deck's own structure.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-xlsx)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">XLSX</span><span class="chip">Native structure</span></div>
+          <h3>Cells, merged ranges, shape</h3>
+          <p>Resolves merged ranges and detects whether a sheet is wide or long, so tables land in the right orientation without a guess.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-csv)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">CSV</span><span class="chip">Native structure</span></div>
+          <h3>Delimiter, encoding, types</h3>
+          <p>Infers the delimiter, the encoding, and the type of each column before it reads a single row, so messy exports parse cleanly.</p>
+        </div>
+      </div>
+
+      <p class="cards-note">
+        <b>PDF</b> gets the full geometry engine because a PDF throws its structure away, terbium
+        has to rebuild it. <b>PPTX, XLSX, and CSV</b> already carry native structure, so terbium leans
+        on it and parses them cleanly and cheaply.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== QUICKSTART ===================== -->
+  <section class="band" id="quickstart">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>Quickstart</span>
+      <h2>Parse first. Add a key only when it asks.</h2>
+      <p class="lead">Install, point it at a file, and read <b>doc.stats</b>. Wire up an AI key when, and only when, terbium tells you a page is genuinely hard.</p>
+
+      <div class="code">
+        <div class="cbar"><span class="lbl">shell</span><span class="lbl">pypi</span></div>
+        <div class="cbody">
+<pre>pip install terbium-parse</pre>
+        </div>
+      </div>
+
+      <div class="code">
+        <div class="cbar"><span class="lbl">python</span><span class="lbl">example.py</span></div>
+        <div class="cbody">
+<pre><span class="kw">import</span> terbium
+
+doc = terbium.<span class="fn">parse</span>(<span class="str">"Furniture Catalogue.pdf"</span>)          <span class="cmt"># algorithmic only</span>
+<span class="fn">print</span>(doc.stats)                                          <span class="cmt"># {confident: 47, ambiguous: 5}</span>
+
+doc = terbium.<span class="fn">parse</span>(<span class="str">"catalogue.pdf"</span>, schema=<span class="str">"furniture"</span>,
+                    ai=terbium.<span class="fn">AI</span>(anthropic_key=...))     <span class="cmt"># AI on hard pages only</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ROUTING ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>When it does call AI, it routes</span>
+      <h2>The hard page gets the strong model. Nothing else does.</h2>
+      <p class="lead">terbium matches the difficulty of a page to the cheapest model that can actually solve it, so you never pay Opus prices for a page Haiku could clear.</p>
+
+      <div class="routing">
+        <div class="route">
+          <div class="rk">Trivial</div>
+          <div class="rv"><span class="d" style="background:var(--c-xlsx)"></span>Haiku</div>
+          <p>A stray label or an obvious cell. Cleared for pennies.</p>
+        </div>
+        <div class="route">
+          <div class="rk">Moderate</div>
+          <div class="rv"><span class="d" style="background:var(--c-csv)"></span>Sonnet</div>
+          <p>A table whose alignment is plausible but not certain.</p>
+        </div>
+        <div class="route">
+          <div class="rk">Hard</div>
+          <div class="rv"><span class="d" style="background:var(--c-pdf)"></span>Opus</div>
+          <p>Ambiguous matrices and orphan SKUs. The real work.</p>
+        </div>
+      </div>
+
+      <p class="vision-note">
+        <span class="swatch"></span>
+        Images, material icons and finish swatches, are read by a <b>vision model</b> and folded back into the record.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer>
+    <div class="wrap foot">
+      <div class="fbrand">
+        <span class="wordmark">terbium<span class="dot"></span></span>
+        <p class="built">Built by <a href="https://github.com/anishfyi">anishfyi</a></p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-end">
+        <nav class="foot-links">
+          <a href="https://github.com/anishfyi/terbium">GitHub</a>
+          <a href="https://github.com/anishfyi/trove">Trove</a>
+          <a href="https://github.com/anishfyi/terbium/blob/main/LICENSE">MIT License</a>
+        </nav>
+        <span class="tile">terbium - Tb - 65</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

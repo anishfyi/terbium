@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="terbium - Tb - element 65">
+  <title>terbium</title>
+  <desc>Periodic-table tile mark for terbium: element 65, symbol Tb.</desc>
+
+  <!-- Black tile field with a faint border so it reads on dark backgrounds too -->
+  <rect x="1" y="1" width="478" height="478" rx="16" fill="#000000" stroke="#1f1f25" stroke-width="2"/>
+
+  <!-- Atomic number, top-left -->
+  <text x="44" y="96"
+        font-family="Helvetica, Arial, sans-serif"
+        font-size="56" font-weight="600"
+        fill="#f0f0f2" letter-spacing="1">65</text>
+
+  <!-- Symbol, centered -->
+  <text x="240" y="318"
+        font-family="Helvetica, Arial, sans-serif"
+        font-size="248" font-weight="700"
+        fill="#ffffff" text-anchor="middle"
+        letter-spacing="-6">Tb</text>
+
+  <!-- Element name, along the bottom -->
+  <text x="240" y="440"
+        font-family="Helvetica, Arial, sans-serif"
+        font-size="46" font-weight="400"
+        fill="#babac4" text-anchor="middle"
+        letter-spacing="6">terbium</text>
+</svg>

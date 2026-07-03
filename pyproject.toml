@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terbium-parse"
+version = "0.1.0"
+description = "A god-level algorithmic multi-file parser (PDF/PPTX/XLSX/CSV) that scores its own confidence and only reaches for AI when it is genuinely stuck."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "anishfyi" }]
+keywords = ["parser", "pdf", "pptx", "xlsx", "csv", "extraction", "document", "ai", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: General",
+]
+dependencies = [
+    "PyMuPDF>=1.24",
+    "python-pptx>=0.6.23",
+    "openpyxl>=3.1",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+# The AI lane is opt-in. terbium runs fully without either of these.
+anthropic = ["anthropic>=0.34"]
+gemini = ["google-generativeai>=0.7"]
+ai = ["anthropic>=0.34", "google-generativeai>=0.7"]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://anishfyi.github.io/terbium"
+Repository = "https://github.com/anishfyi/terbium"
+
+[project.scripts]
+terbium = "terbium.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+terbium = ["py.typed"]
