@@ -200,6 +200,32 @@ def test_product_header_longest_match():
     assert _map_header("Article Number") == "sku"
 
 
+def test_ai_enrich_plumbing(monkeypatch):
+    # verify the AI enrichment layer end-to-end with a stubbed provider (no key)
+    from terbium.harness import product_ai
+    from terbium.harness.ai import AI
+
+    class Stub:
+        def complete(self, prompt, system, tier, image_png=None):
+            return (
+                '{"name":"Anatolia Kilim","sku":"RG-1001","category":"rug",'
+                '"price":{"amount":249,"currency":"GBP"},"color":"terracotta",'
+                '"material":"wool","attributes":{"weave":"flatweave","pattern":"geometric"},'
+                '"confidence":0.95}'
+            )
+
+    monkeypatch.setattr(product_ai, "text_provider", lambda ai: Stub())
+    ai = AI(anthropic_key="test-key")
+    recs = [Record(sku="RG-1001", fields={"name": "Anatolia Kilim"}, source_page=0, confidence=0.5)]
+    r = product_ai.enrich_records(recs, ai)[0]
+    assert r.origin == "ai"
+    assert r.fields["category"] == "rug"
+    assert r.fields["material"] == "wool"
+    assert r.fields["weave"] == "flatweave"          # implicit attribute folded in
+    assert r.fields["price_amount"] == 249 and r.fields["currency"] == "GBP"
+    assert r.confidence == 0.95
+
+
 def test_csv_roundtrip(tmp_path):
     import terbium
 

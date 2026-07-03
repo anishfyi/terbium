@@ -12,16 +12,18 @@ from __future__ import annotations
 from .api import parse, supported_extensions, DEFAULT_THRESHOLD
 from .extract import export_images
 from .harness import AI
+from .harness.product_ai import enrich_records as enrich_products
 from .harness.vision import read_page as read_vision
 from .model.document import ParsedDocument, Stats
 from .model.record import Record
 from .model.table import ExtractedTable
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "parse",
     "export_images",
+    "enrich_products",
     "AI",
     "read_vision",
     "supported_extensions",
