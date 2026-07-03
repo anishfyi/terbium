@@ -70,11 +70,21 @@ doc = terbium.parse("Furniture Catalogue.pdf",
                     ai=terbium.AI(anthropic_key="sk-..."))
 ```
 
+Pull out the product images, each named after the product it sits under:
+
+```python
+manifest = terbium.export_images("lookbook.pdf", "out/")
+# out/Kyoto_Bedside_Table.jpeg, out/Meadow_Bedside_Table.jpeg, ...
+# manifest rows carry: product, collection, page, pixel size, colorspace,
+# format, dpi, dominant_color, bbox
+```
+
 Run it from the shell:
 
 ```bash
 terbium "Furniture Catalogue.pdf" --schema furniture
 terbium report.xlsx --json out.json
+terbium lookbook.pdf --images out/          # extract product photos + manifest.csv
 ```
 
 ## What it parses

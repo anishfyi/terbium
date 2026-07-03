@@ -10,18 +10,20 @@ confidence and only reaches for AI when it is genuinely stuck.
 from __future__ import annotations
 
 from .api import parse, supported_extensions, DEFAULT_THRESHOLD
+from .extract import export_images
 from .harness import AI
-from .harness.vision import read_page as read_images
+from .harness.vision import read_page as read_vision
 from .model.document import ParsedDocument, Stats
 from .model.record import Record
 from .model.table import ExtractedTable
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "parse",
+    "export_images",
     "AI",
-    "read_images",
+    "read_vision",
     "supported_extensions",
     "ParsedDocument",
     "Record",

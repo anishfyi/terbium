@@ -112,6 +112,19 @@ def test_labels_need_a_grid_not_prose():
     assert extract_labels(cluster_lines(words), page) is None
 
 
+def test_image_label_association():
+    # a photo should bind to the label sitting just below it, not a distant one
+    from terbium.extract import _associate
+
+    items = [
+        {"name": "Kyoto Bedside Table", "cx": 200, "y": 280, "size": 12},
+        {"name": "Far Away", "cx": 900, "y": 280, "size": 12},
+        {"name": "Above It", "cx": 200, "y": 20, "size": 12},
+    ]
+    assert _associate((100, 50, 300, 250), items) == "Kyoto Bedside Table"
+    assert _associate((100, 50, 300, 250), []) is None
+
+
 def test_csv_roundtrip(tmp_path):
     import terbium
 
