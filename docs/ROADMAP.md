@@ -90,10 +90,10 @@ Frontier models lead on hard document work, but the premium-to-budget gap is onl
 | Phase | Deliverable | State |
 |---|---|---|
 | 0 | Generic engine: tables, labels, images, confidence, escalation | done (0.4.0) |
-| 1 | Universal `product` schema (category-agnostic column mapping) | this iteration |
-| 2 | AI enrich layer: normalize + implicit attributes + vision reads | next |
-| 3 | Normalization: units, currency, color/material taxonomies | next |
-| 4 | Evaluation harness + public benchmark vs the field | after 2-3 |
+| 1 | Universal `product` schema (category-agnostic column mapping) | done (0.5.0) |
+| 2 | AI enrich layer: implicit attributes + vision reads | done (0.6.0) |
+| 3 | Normalization: units, currency, color/material taxonomies | done (0.7.0) |
+| 4 | Evaluation harness + public benchmark vs the field | next |
 | 5 | Feed exporters (Shopify CSV, Google Merchant, generic PIM JSON) | after 4 |
 
 ## Risks and honest limits
