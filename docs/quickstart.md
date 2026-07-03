@@ -52,4 +52,10 @@ for r in doc.records:
 terbium catalogue.pdf --schema furniture
 terbium report.xlsx --json out.json
 terbium deck.pptx --ai --tier opus       # enable AI, pin the tier
+terbium lookbook.pdf --images out/       # extract product photos + manifest.csv
 ```
+
+## Pulling out images
+
+To export the actual product photos (named after each product), use
+`terbium.export_images(path, out_dir)` or `--images`. See [images.md](images.md).

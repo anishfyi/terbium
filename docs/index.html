@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>terbium - a god-level algorithmic multi-file parser</title>
-  <meta name="description" content="terbium reconstructs a document's structure geometrically, scores its own confidence per record, and only calls an AI model when it is genuinely stuck. Parses PDF, PPTX, XLSX, CSV." />
+  <meta name="description" content="terbium reconstructs a document's structure geometrically, scores its own confidence per record, pulls out the product images, and only calls an AI model when it is genuinely stuck. Parses PDF, PPTX, XLSX, CSV." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -442,6 +442,42 @@
         <b>PDF</b> gets the full geometry engine because a PDF throws its structure away, terbium
         has to rebuild it. <b>PPTX, XLSX, and CSV</b> already carry native structure, so terbium leans
         on it and parses them cleanly and cheaply.
+      </p>
+      <p class="cards-note">
+        <b>Not every PDF is a matrix.</b> A lookbook, a grid of photos with a name under each, is
+        reconstructed as a <b>label grid</b>: one record per product, grouped by collection. And when
+        a page is image-only, terbium does not return nothing, it reports exactly which pages need
+        the vision lane.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== IMAGES ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>Not just the text</span>
+      <h2>Pull out the product images, named by product.</h2>
+      <p class="lead">
+        terbium extracts every product photo <b>losslessly</b> and names each file after the product
+        it sits beneath, dropping icons, thin banners, and logos that repeat across pages. One call,
+        no AI key needed.
+      </p>
+
+      <div class="code">
+        <div class="cbar"><span class="lbl">python</span><span class="lbl">export_images</span></div>
+        <div class="cbody">
+<pre><span class="kw">import</span> terbium
+manifest = terbium.<span class="fn">export_images</span>(<span class="str">"lookbook.pdf"</span>, <span class="str">"out/"</span>)
+<span class="cmt"># out/Kyoto_Bedside_Table.jpeg, out/Meadow_Bedside_Table.jpeg, ...</span>
+
+<span class="cmt"># or from the shell, with a manifest.csv alongside the photos</span>
+<span class="rule">$</span> terbium lookbook.pdf <span class="kw">--images</span> out/</pre>
+        </div>
+      </div>
+
+      <p class="cards-note">
+        <b>Per image:</b> product, collection, page, format, pixel size, colorspace, effective dpi,
+        dominant colour, and position, written to a <b>manifest.csv</b>.
       </p>
     </div>
   </section>
