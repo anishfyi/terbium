@@ -90,6 +90,12 @@ PDF gets the full geometry engine because a PDF throws its structure away. PPTX,
 XLSX and CSV already carry native structure, so terbium leans on it and parses
 them cleanly and cheaply.
 
+**Not every PDF is a matrix.** When a document is a lookbook, a grid of product
+photos with a name under each, terbium reconstructs the label grid instead:
+one record per product, grouped under its collection title. And when a page is
+image-only, with no text layer at all, terbium does not return an empty result:
+it reports exactly which pages need the vision lane.
+
 ## Confidence and escalation
 
 terbium never pretends a shaky parse is solid. When it cannot be sure and no key
