@@ -76,11 +76,34 @@ Reproduce with `python eval/category_bench.py`. This measures the deterministic
 engine on clean lookbook layouts; messy real-world brochures are where the AI pass
 earns its place (below).
 
-## Two real catalogues
+## On real vendor catalogues (six categories, no AI key)
 
-- A labelled lookbook deck (photo grid, a name under each): **70 products, every
-  one with its name and its own image file**, deterministically, no key.
-- A visual brochure (full-bleed photos, range titles, prose descriptions):
-  the range names (Virasat, Eterna, Nordic, ...) and images come out
-  deterministically; per-product names, SKUs, and materials are what the AI pass
-  is for.
+Six genuine vendor catalogue PDFs, one per category, downloaded from the open web
+and run through `build_catalog` with no key. 1,010 products in total:
+
+| category (real source) | products | name | image | sku | materials |
+|---|---|---|---|---|---|
+| furniture (Trampoline) | 70 | 70 | 70 | 10 | 18 |
+| rugs (The Rug Furnish) | 124 | 97 | 124 | 103 | 41 |
+| lamps (Sahil & Sarthak, 227 pp) | 484 | 415 | 484 | 229 | 191 |
+| cushions (Domkapa) | 121 | 40 | 121 | 8 | 66 |
+| handbags (Zoosch) | 183 | 108 | 183 | 59 | 112 |
+| handwash (English Soap Co) | 28 | 0 | 28 | 0 | 0 |
+| **total** | **1010** | **730** | **1010** | **409** | **428** |
+
+What this says honestly:
+
+- **Image extraction is the solved core: 1010/1010.** Every product on every real
+  catalogue got its photo pulled and linked.
+- **Name 72%, SKU 40%, materials 42%** deterministically. Strong where the
+  catalogue prints them beside the photo (lamps: real codes like `SSVSNL26`, rugs:
+  `MRP-962`), thin where it does not. A SKU count below the product count usually
+  means that catalogue simply does not print a per-product code.
+- **The handwash brochure is the honest floor: images yes, text zero.** Its names
+  and ingredients are set as stylised artwork, not selectable text. This is exactly
+  what the AI pass is for: give it a key and a vision model reads the product photo
+  plus the page to recover the name and ingredients.
+
+So the deterministic engine owns the image and does well on text where the layout
+is clean; the AI pass is what carries the messy, stylised catalogues the rest of
+the way. That split is the design, not a gap.

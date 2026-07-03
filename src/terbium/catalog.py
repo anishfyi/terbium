@@ -49,19 +49,24 @@ def _page_lines(page) -> List[str]:
 
 
 _SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")
+_DIM_TOK = re.compile(r"^\d+(?:\.\d+)?(?:cm|mm|m|ml|l|kg|g|in|\")$", re.IGNORECASE)
 
 
 def _find_sku(lines: List[str]) -> Optional[str]:
-    """A real product code: an alphanumeric mix, a 5-digit article, or a long
-    barcode. Deliberately strict so page numbers, years, and prices are not SKUs."""
+    """A real product code: two+ letters with a digit, a separated code like
+    ``MRP-962``, a 5-digit article, or a long barcode. Deliberately strict so page
+    numbers, years, prices (``R350``), and dimensions (``28cm``) are not SKUs."""
     for text in lines:
         for tok in text.split():
             t = tok.strip(".,;:()[]")
-            if not _SKU_TOK.match(t):
+            if not _SKU_TOK.match(t) or _DIM_TOK.match(t):
                 continue
-            has_alpha = any(c.isalpha() for c in t)
+            alpha = sum(c.isalpha() for c in t)
             digits = sum(c.isdigit() for c in t)
-            if (has_alpha and digits) or re.fullmatch(r"\d{5}", t) or digits >= 8:
+            sep = any(c in "-_./" for c in t)
+            if re.fullmatch(r"\d{5}", t) or digits >= 8:
+                return t
+            if digits >= 1 and (alpha >= 2 or (sep and alpha >= 1)):
                 return t
     return None
 
