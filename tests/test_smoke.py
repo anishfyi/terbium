@@ -211,6 +211,45 @@ def test_normalization_families_and_dimensions():
     assert dimensions_mm("no dimensions here") is None
 
 
+def test_catalog_helpers_and_sku_strictness():
+    from terbium.catalog import _find_sku, _find_materials, to_catalog_csv
+
+    # strict SKU: real codes yes, page numbers / prices no
+    assert _find_sku(["RG-1001 Anatolia Kilim"]) == "RG-1001"
+    assert _find_sku(["20156"]) == "20156"           # 5-digit article
+    assert _find_sku(["Page 12", "1899", "2026"]) is None
+    # materials from a labelled line and from prose material terms
+    assert _find_materials(["Material: Solid Oak"], None) == "Solid Oak"
+    assert _find_materials(["Crafted from solid mango wood"], None).startswith("solid mango wood") \
+        or _find_materials(["Crafted from solid mango wood"], None) == "mango, wood"
+    csv_text = to_catalog_csv([{"sku": "RG-1", "name": "Kilim", "materials": "wool",
+                                "image": "kilim.jpg", "page": 2}])
+    assert csv_text.splitlines()[0] == "SKU,Name,Materials/Ingredients,Image,Page"
+    assert "RG-1,Kilim,wool,kilim.jpg,2" in csv_text
+
+
+def test_catalog_ai_fills_blanks(monkeypatch):
+    # the AI pass fills name/sku/materials the deterministic pass left blank
+    from terbium.harness import catalog_ai
+
+    class Stub:
+        def complete(self, prompt, system, tier, image_png=None):
+            return '{"name":"Virasat Sideboard","sku":null,"materials":"solid mango wood"}'
+
+    monkeypatch.setattr(catalog_ai, "vision_provider", lambda ai: Stub())
+
+    class FakeAI:
+        available = True
+        force_tier = None
+
+    rows = [{"name": None, "sku": None, "materials": None, "image": None,
+             "page": 4, "_context": "Virasat, solid mango wood"}]
+    out = catalog_ai.enrich_catalog(rows, "x.pdf", None, FakeAI())
+    assert out[0]["name"] == "Virasat Sideboard"
+    assert out[0]["materials"] == "solid mango wood"
+    assert out[0]["sku"] is None                      # model told not to invent one
+
+
 def test_ai_enrich_plumbing(monkeypatch):
     # verify the AI enrichment layer end-to-end with a stubbed provider (no key)
     from terbium.harness import product_ai
