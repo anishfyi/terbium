@@ -211,6 +211,46 @@ def test_normalization_families_and_dimensions():
     assert dimensions_mm("no dimensions here") is None
 
 
+def test_catalog_end_to_end_all_four_fields(tmp_path):
+    # generate a tiny lookbook PDF (real embedded photos + captions) and confirm
+    # build_catalog recovers name, SKU, materials, and the image file for a product
+    import io
+
+    import fitz
+    from PIL import Image
+
+    import terbium
+
+    def photo(c):
+        buf = io.BytesIO()
+        Image.new("RGB", (400, 300), c).save(buf, format="PNG")
+        return buf.getvalue()
+
+    doc = fitz.open()
+    pg = doc.new_page(width=820, height=1040)
+    products = [("Anatolia Kilim", "RUG-101", "Material: Wool", (170, 90, 70)),
+                ("Citrus Hand Wash", "HW-602", "Ingredients: Aqua, Grapefruit", (90, 130, 110))]
+    for i, (name, sku, mat, col) in enumerate(products):
+        y0 = 40 + i * 480
+        pg.insert_image(fitz.Rect(40, y0, 340, y0 + 220), stream=photo(col))
+        pg.insert_text((40, y0 + 244), name, fontsize=15)
+        pg.insert_text((40, y0 + 312), f"SKU: {sku}", fontsize=10)
+        pg.insert_text((40, y0 + 330), mat, fontsize=10)
+    path = str(tmp_path / "lookbook.pdf")
+    doc.save(path)
+    doc.close()
+
+    rows = terbium.build_catalog(path, images_dir=str(tmp_path / "img"), only_photos=False)
+    by_name = {r["name"].strip().lower(): r for r in rows if r.get("name")}
+    rug = by_name["anatolia kilim"]
+    assert rug["sku"] == "RUG-101"
+    assert "wool" in (rug["materials"] or "").lower()
+    assert rug["image"] and (tmp_path / "img" / rug["image"]).exists()
+    wash = by_name["citrus hand wash"]
+    assert wash["sku"] == "HW-602"
+    assert "aqua" in (wash["materials"] or "").lower()      # ingredients, not materials
+
+
 def test_catalog_helpers_and_sku_strictness():
     from terbium.catalog import _find_sku, _find_materials, to_catalog_csv
 

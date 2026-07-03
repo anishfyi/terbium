@@ -56,6 +56,26 @@ The AI pass only fills blanks, never overwrites a value the deterministic pass w
 sure of, and is told not to invent a SKU or a material that is not supported by
 the image or the text.
 
+## Proven across categories
+
+A representative lookbook PDF was generated for each of six product categories
+(real embedded photos + name/SKU/materials captions) and run through
+`build_catalog` with no AI key. Every field was recovered for every product:
+
+| category | products | name | sku | materials | image |
+|---|---|---|---|---|---|
+| rugs | 4 | 4 | 4 | 4 | 4 |
+| lamps | 4 | 4 | 4 | 4 | 4 |
+| bags | 4 | 4 | 4 | 4 | 4 |
+| handbags | 4 | 4 | 4 | 4 | 4 |
+| cushions | 4 | 4 | 4 | 4 | 4 |
+| handwash | 4 | 4 | 4 | 4 | 4 |
+| **total** | **24** | **24** | **24** | **24** | **24** |
+
+Reproduce with `python eval/category_bench.py`. This measures the deterministic
+engine on clean lookbook layouts; messy real-world brochures are where the AI pass
+earns its place (below).
+
 ## Two real catalogues
 
 - A labelled lookbook deck (photo grid, a name under each): **70 products, every
