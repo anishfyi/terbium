@@ -50,6 +50,7 @@ def _page_lines(page) -> List[str]:
 
 _SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")
 _DIM_TOK = re.compile(r"^\d+(?:\.\d+)?(?:cm|mm|m|ml|l|kg|g|in|\")$", re.IGNORECASE)
+_ORD_TOK = re.compile(r"^\d+(?:st|nd|rd|th)$", re.IGNORECASE)          # 1st, 21st
 
 
 def _find_sku(lines: List[str]) -> Optional[str]:
@@ -59,7 +60,7 @@ def _find_sku(lines: List[str]) -> Optional[str]:
     for text in lines:
         for tok in text.split():
             t = tok.strip(".,;:()[]")
-            if not _SKU_TOK.match(t) or _DIM_TOK.match(t):
+            if not _SKU_TOK.match(t) or _DIM_TOK.match(t) or _ORD_TOK.match(t):
                 continue
             alpha = sum(c.isalpha() for c in t)
             digits = sum(c.isdigit() for c in t)
