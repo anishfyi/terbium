@@ -18,6 +18,7 @@ from .layout import dehead, grid
 from .layout.columns import split_columns
 from .layout.labels import extract_labels
 from .layout.lines import cluster_lines
+from .layout.tables import detect_tables, is_data_table
 from .model.document import ParsedDocument, Stats
 from .model.elements import Page
 from .model.record import Record
@@ -28,20 +29,22 @@ from .harness import arrange_tables, build_message, resolve
 DEFAULT_THRESHOLD = 0.72
 
 
-def _assemble_tables(pages: List[Page]) -> Tuple[List[ExtractedTable], List[int]]:
+def _assemble_tables(pages: List[Page], furniture_mode: bool = False) -> Tuple[List[ExtractedTable], List[int]]:
     """Return (tables, image_only_page_indices).
 
-    For a PDF page: try to reconstruct matrices from the split spread; if none,
-    fall back to label-grid extraction on the full page. A page with images but
-    almost no text and no table is recorded as image-only (needs the vision lane).
+    By default a content-agnostic geometric detector reconstructs any column
+    aligned table. ``furniture_mode`` swaps in the specialized cross-tab detector.
+    If a page yields no table, label-grid extraction runs on the full page. A page
+    with images but almost no text and no table is recorded as image-only.
     """
+    detector = grid.extract_tables if furniture_mode else detect_tables
     tables: List[ExtractedTable] = []
     image_only: List[int] = []
     pdf_pages = [p for p in pages if p.source_kind == "pdf"]
     text_pdf = [p for p in pdf_pages if p.words]
     stripper = dehead.build_stripper(text_pdf) if text_pdf else None
 
-    # Pass 1: native tables + reconstructed matrices.
+    # Pass 1: native tables + reconstructed tables.
     matrix_pages = set()
     for p in pages:
         if p.native_tables:
@@ -54,7 +57,11 @@ def _assemble_tables(pages: List[Page]) -> Tuple[List[ExtractedTable], List[int]
             lines = cluster_lines(word_group)
             if stripper:
                 lines = [ln for ln in lines if not stripper(ln, p)]
-            matrix.extend(grid.extract_tables(lines, p))
+            found = detector(lines, p)
+            if not furniture_mode and len(p.images) >= 3:
+                # on an image-heavy page, a text-only "table" is a lookbook grid
+                found = [t for t in found if is_data_table(t)]
+            matrix.extend(found)
         if matrix:
             tables.extend(matrix)
             matrix_pages.add(p.index)
@@ -101,7 +108,9 @@ def parse(
     pages = adapter.parse(path)
     source_kind = pages[0].source_kind if pages else "unknown"
 
-    tables, image_only = _assemble_tables(pages)
+    schema_obj = get_schema(schema)
+    furniture_mode = getattr(schema_obj, "name", None) == "furniture"
+    tables, image_only = _assemble_tables(pages, furniture_mode)
     matrix_tables = [t for t in tables if t.kind != "labels"]
     label_tables = [t for t in tables if t.kind == "labels"]
     for t in matrix_tables:
@@ -115,7 +124,6 @@ def parse(
         used_ai = fixed > 0
         hard = [t for t in matrix_tables if t.confidence < threshold]
 
-    schema_obj = get_schema(schema)
     records = []
     for t in matrix_tables:
         recs = schema_obj.build_records([t])

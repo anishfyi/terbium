@@ -16,9 +16,14 @@ The hard case, and where the geometry engine runs in full.
 3. **Spread splitting.** A landscape page with an empty central gutter is a
    two-page spread; terbium cuts it so the left product does not merge with the
    right.
-4. **Grid reconstruction.** Column anchors come from the x-positions of the cells;
-   row headers are the dimension-led lines; the finish names above become column
-   headers. Every article number is placed into its cell by x-alignment.
+4. **Table reconstruction (content-agnostic).** A run of consecutive lines that
+   share the same column structure is a table. Column anchors come from the
+   x-positions of the cells, the first row becomes the header, and every cell is
+   placed by x-alignment. It makes no assumption about what the cells contain, so
+   a financial table, a spec sheet, and a furniture matrix all reconstruct the
+   same way. Multi-column prose is rejected (its cells are sentence fragments, not
+   data). The furniture size x finish cross-tab is a special case the `furniture`
+   schema interprets on top of the generic grid.
 
 ### Beyond matrices
 
