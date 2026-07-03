@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" width="180" alt="terbium: a periodic-table tile reading 65 Tb terbium">
+<img src="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/logo.png" width="150" alt="terbium: a periodic-table tile reading 65 Tb terbium">
 
 # terbium
 
