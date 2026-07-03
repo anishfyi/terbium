@@ -72,6 +72,46 @@ def test_sparse_matrix_scores_lower():
     assert any("sparse" in r for r in reasons)
 
 
+def test_label_grid_extraction():
+    # a synthetic lookbook page: a collection title + a 2-column grid of names,
+    # one of which wraps onto a second line.
+    from terbium.layout.labels import extract_labels
+    from terbium.layout.lines import cluster_lines
+    from terbium.model.elements import ImageRef
+
+    def w(text, x0, y, size=12.0):
+        return Word(text=text, x0=x0, y0=y, x1=x0 + 8 * len(text), y1=y + 10, size=size)
+
+    words = [
+        w("Bedside", 60, 10, size=16), w("Collection", 112, 10, size=16),   # title
+        w("Kyoto", 140, 200), w("Bedside", 182, 200),                       # col A row 1
+        w("Meadow", 380, 200), w("Bedside", 432, 200),                      # col B row 1
+        w("Table", 400, 228),                                               # col B row 1 wrap
+        w("Raas", 140, 400), w("Bedside", 177, 400), w("Table", 227, 400),  # col A row 2
+        w("Coco", 380, 400), w("Bedside", 417, 400),                        # col B row 2
+    ]
+    page = Page(index=0, width=600, height=800, words=words, source_kind="pdf",
+                images=[ImageRef(page=0, width=200, height=200) for _ in range(4)])
+    t = extract_labels(cluster_lines(words), page)
+    assert t is not None and t.title == "Bedside Collection"
+    names = {c[0] for c in t.cells}
+    assert "Meadow Bedside Table" in names   # wrapped label stitched back together
+    assert "Kyoto Bedside" in names
+    assert "Raas Bedside Table" in names
+
+
+def test_labels_need_a_grid_not_prose():
+    # a single image + one line is prose, not a label grid -> no extraction
+    from terbium.layout.labels import extract_labels
+    from terbium.layout.lines import cluster_lines
+    from terbium.model.elements import ImageRef
+
+    words = [Word(text="Virasat", x0=100, y0=100, x1=160, y1=112, size=14)]
+    page = Page(index=0, width=600, height=800, words=words, source_kind="pdf",
+                images=[ImageRef(page=0, width=400, height=400)])
+    assert extract_labels(cluster_lines(words), page) is None
+
+
 def test_csv_roundtrip(tmp_path):
     import terbium
 

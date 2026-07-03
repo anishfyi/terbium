@@ -20,6 +20,18 @@ The hard case, and where the geometry engine runs in full.
    row headers are the dimension-led lines; the finish names above become column
    headers. Every article number is placed into its cell by x-alignment.
 
+### Beyond matrices
+
+Not every PDF is a dimension x finish matrix.
+
+- **Label grids.** A lookbook is a grid of product photos with a name under each.
+  When a document is mostly not matrices, terbium enters lookbook mode: it
+  segments each row into separate labels, stitches wrapped names back together,
+  and groups them under the page's collection title. One record per product.
+- **Image-only pages.** A page with images but no text layer cannot be read
+  algorithmically. terbium records these and reports them, so an image catalogue
+  returns an honest "these pages need the vision lane" instead of nothing.
+
 ## PPTX
 
 python-pptx exposes shapes with positions, native tables (rows and cells, no
