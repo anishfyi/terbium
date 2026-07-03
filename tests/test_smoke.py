@@ -200,6 +200,17 @@ def test_product_header_longest_match():
     assert _map_header("Article Number") == "sku"
 
 
+def test_normalization_families_and_dimensions():
+    from terbium.normalize import color_family, material_family, dimensions_mm
+
+    assert color_family("Off White") == "white"     # longest term wins over "white"
+    assert color_family("Terracotta") == "red"
+    assert material_family("Full-grain Leather") == "leather"
+    assert material_family("Polypropylene") == "textile"
+    assert dimensions_mm("160 x 230 cm")["values_mm"] == [1600.0, 2300.0]
+    assert dimensions_mm("no dimensions here") is None
+
+
 def test_ai_enrich_plumbing(monkeypatch):
     # verify the AI enrichment layer end-to-end with a stubbed provider (no key)
     from terbium.harness import product_ai

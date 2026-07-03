@@ -13,6 +13,7 @@ from typing import List, Optional
 
 from ..model.record import Record
 from ..model.table import ExtractedTable
+from ..normalize import enrich_fields
 from .base import Schema, register_schema
 
 # canonical field -> header substrings that map to it (checked most-specific first)
@@ -112,7 +113,7 @@ class ProductSchema(Schema):
                             sku = cell
                             break
                 records.append(
-                    Record(sku=sku, fields=fields, source_page=t.source_page,
+                    Record(sku=sku, fields=enrich_fields(fields), source_page=t.source_page,
                            confidence=t.confidence, reasons=list(t.reasons))
                 )
         return records
