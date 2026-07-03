@@ -26,6 +26,28 @@ SKU,Name,Materials/Ingredients,Image,Page
 RG-1001,Anatolia Kilim,wool,Anatolia_Kilim.jpeg,12
 ```
 
+## From the terminal (no AI)
+
+```bash
+terbium catalogue.pdf                    # print the table; images -> catalogue_images/
+terbium catalogue.pdf --csv out.csv      # + write the CSV
+terbium catalogue.pdf --csv -            # print raw CSV to stdout instead
+terbium catalogue.pdf --limit 0          # show every row, not just the first 20
+terbium prices.xlsx  --no-images         # a pricelist: table only, no image extraction
+terbium catalogue.pdf --records          # raw parsed records instead of the table
+```
+
+`terbium <file>` prints an aligned table (SKU, Name, Materials/Ingredients, Image,
+Page) and, for a PDF or PPTX, extracts the photos to `<file>_images/`. It uses no
+AI unless you add `--ai`. Example:
+
+```
+terbium 0.9.2  ·  catalogue.pdf  ·  124 products  ·  images -> catalogue_images/
+SKU     | Name           | Materials/Ingredients | Image                | Page
+--------+----------------+-----------------------+----------------------+-----
+MRP-962 | Aur 152 Peach  | wool                  | Aur_152_Peach.jpeg   | 10
+```
+
 ## How it works
 
 For an image-bearing PDF, every product **photo anchors a row**. terbium:
