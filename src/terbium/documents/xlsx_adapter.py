@@ -75,14 +75,11 @@ def _grid_to_table(grid: List[List[Optional[str]]], page_index: int, title: Opti
         return None
     header = grid[0]
     body = grid[1:]
-    col_headers = header[1:] if len(header) > 1 else header
-    row_headers = [(r[0] if r else "") or "" for r in body]
-    cells = [r[1:] if len(r) > 1 else r for r in body]
     return ExtractedTable(
         title=title,
-        row_headers=row_headers,
-        col_headers=[h or f"col{i + 1}" for i, h in enumerate(col_headers)],
-        cells=cells if cells else [[v for v in r] for r in body],
+        row_headers=[""] * len(body),
+        col_headers=[h or f"col{i + 1}" for i, h in enumerate(header)],
+        cells=[list(r) for r in body],
         source_page=page_index,
         kind="grid",
     )

@@ -52,6 +52,11 @@ class GenericSchema(Schema):
                 fields["title"] = t.title
             fields.update(t.attributes)
             sku = _as_sku(row_label)
+            if sku is None:
+                for val in row:
+                    sku = _as_sku(val)
+                    if sku:
+                        break
             out.append(
                 Record(sku=sku, fields=fields, source_page=t.source_page,
                        confidence=t.confidence, reasons=list(t.reasons))

@@ -53,20 +53,16 @@ def _slide_title(slide) -> Optional[str]:
 
 def _table_to_extracted(shape, page_index: int, title: Optional[str]) -> ExtractedTable:
     tbl = shape.table
-    rows = list(tbl.rows)
-    grid = [[cell.text.strip() for cell in row.cells] for row in rows]
+    grid = [[cell.text.strip() for cell in row.cells] for row in tbl.rows]
     if not grid:
         return ExtractedTable(title, [], [], [], page_index, kind="grid")
-    col_headers = grid[0]
+    header = grid[0]
     body = grid[1:] if len(grid) > 1 else []
-    row_headers = [r[0] if r else "" for r in body]
-    cells = [[(v if v else None) for v in (r[1:] if len(r) > 1 else r)] for r in body]
-    col_headers = col_headers[1:] if len(col_headers) > 1 else col_headers
     return ExtractedTable(
         title=title,
-        row_headers=row_headers,
-        col_headers=col_headers,
-        cells=cells if cells else [[v or None for v in r] for r in body],
+        row_headers=[""] * len(body),
+        col_headers=[h or f"col{i + 1}" for i, h in enumerate(header)],
+        cells=[[(v if v else None) for v in r] for r in body],
         source_page=page_index,
         kind="grid",
     )
