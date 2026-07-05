@@ -100,6 +100,14 @@
       color:var(--fg);border:1px solid var(--line-2);
     }
     .nav-links a.btn-gh:hover{border-color:var(--fg-faint);background:var(--bg-3)}
+    /* keep the nav on one tidy row on phones: drop the decorative tagline and
+       tighten the links so they sit beside the wordmark instead of overlapping it */
+    @media (max-width:600px){
+      .nav{gap:12px;height:58px}
+      .microtag{display:none}
+      .nav-links{gap:4px}
+      .nav-links a{font-size:10.5px;letter-spacing:.1em;padding:7px 9px}
+    }
 
     /* ---------- shared bits ---------- */
     .kicker{
