@@ -4,14 +4,15 @@
 
 # terbium
 
-**A god-level algorithmic multi-file parser that knows when it is stuck.**
-It reconstructs a document's structure from geometry, scores its own confidence,
-and only reaches for an AI model when the algorithm cannot be sure.
+**Catalogue in. Product catalog out.**
+A god-level algorithmic parser for vendor catalogues: it reconstructs structure
+from geometry, scores its own confidence, and only reaches for an AI model when
+the algorithm cannot be sure.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-000000.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-000000.svg)](pyproject.toml)
 [![formats](https://img.shields.io/badge/PDF_PPTX_XLSX_CSV-000000.svg)](#what-it-parses)
-[![version](https://img.shields.io/badge/version-0.1.0-000000.svg)](pyproject.toml)
+[![version](https://img.shields.io/badge/version-0.9.3-000000.svg)](pyproject.toml)
 
 [Website](https://anishfyi.github.io/terbium) · [Trove](https://github.com/anishfyi/trove)
 
@@ -82,16 +83,15 @@ pip install terbium-parse
 ```python
 import terbium
 
-doc = terbium.parse("Furniture Catalogue.pdf")     # algorithmic only, no key needed
-print(doc.stats)                                    # Stats(total=725, confident=712, ambiguous=13)
+rows = terbium.build_catalog("catalogue.pdf", images_dir="images/")   # no key needed
+# each row: sku, name, materials, image, page
 
-for r in doc.records:
-    print(r.sku, r.fields)
+doc = terbium.parse("pricelist.xlsx", schema="product")   # raw records API
+print(doc.stats)                                          # Stats(total=725, confident=712, ambiguous=13)
 
-# opt into AI only for the pages the engine could not resolve
-doc = terbium.parse("Furniture Catalogue.pdf",
-                    schema="furniture",
-                    ai=terbium.AI(anthropic_key="sk-..."))
+# opt into AI only for what the engine could not resolve
+rows = terbium.build_catalog("lookbook.pdf", images_dir="images/",
+                             ai=terbium.AI(anthropic_key="sk-..."))
 ```
 
 Pull out the product images, each named after the product it sits under:
@@ -106,9 +106,9 @@ manifest = terbium.export_images("lookbook.pdf", "out/")
 Run it from the shell:
 
 ```bash
-terbium "Furniture Catalogue.pdf" --schema furniture
-terbium report.xlsx --json out.json
+terbium catalogue.pdf --csv out.csv         # the product table + images/, no AI
 terbium lookbook.pdf --images out/          # extract product photos + manifest.csv
+terbium report.xlsx --records --json out.json   # raw parsed records
 ```
 
 ## What it parses
@@ -133,13 +133,21 @@ it reports exactly which pages need the vision lane.
 ## Confidence and escalation
 
 terbium never pretends a shaky parse is solid. When it cannot be sure and no key
-is set, it prints exactly what it could not do:
+is set, it prints exactly what it could not do. On a records parse:
 
 ```
 terbium: 712/725 records parsed confidently.
 3 table(s) on page(s) 15, 26, 30 are ambiguous (no product title found above
 the table; sparse matrix: 5/9 cells filled; 2 row(s) do not line up).
 -> set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)   recommended tier: Sonnet
+```
+
+And on a catalog build, when the data lives in the photos instead of the text:
+
+```
+terbium: 8/121 products have a name, 0 a SKU, 9 materials/ingredients.
+82 page(s) are image-only (1, 5, 6, 7, 8, ...) - the data lives in the photos, not the text.
+-> set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)   recommended tier: Opus (vision)
 ```
 
 Every record exposes its own `confidence` and the `reasons` behind it, so you can
@@ -163,9 +171,13 @@ environment variables.
 
 ## Schemas
 
-A schema turns reconstructed tables into typed records. Ships with two:
+A schema turns reconstructed tables into typed records. Ships with three:
 
-- `generic` (default): one record per row for grids, one per cell for matrices.
+- `product`: universal, category-agnostic. Maps any table's columns to product
+  fields by header meaning (sku/name/price/dimensions/color/material/qty/...);
+  category-specific columns survive as attributes.
+- `generic` (default for `parse`): one record per row for grids, one per cell
+  for matrices.
 - `furniture`: product, size, finish, and metric + imperial dimensions per SKU.
 
 Add your own by subclassing `terbium.schema.Schema` and registering it.

@@ -42,7 +42,7 @@ Page) and, for a PDF or PPTX, extracts the photos to `<file>_images/`. It uses n
 AI unless you add `--ai`. Example:
 
 ```
-terbium 0.9.2  ·  catalogue.pdf  ·  124 products  ·  images -> catalogue_images/
+terbium 0.9.3  ·  catalogue.pdf  ·  124 products  ·  images -> catalogue_images/
 SKU     | Name           | Materials/Ingredients | Image                | Page
 --------+----------------+-----------------------+----------------------+-----
 MRP-962 | Aur 152 Peach  | wool                  | Aur_152_Peach.jpeg   | 10
@@ -77,6 +77,22 @@ rows = terbium.build_catalog(
 The AI pass only fills blanks, never overwrites a value the deterministic pass was
 sure of, and is told not to invent a SKU or a material that is not supported by
 the image or the text.
+
+### It tells you when it needs the key
+
+When the deterministic pass leaves a meaningful share of the table blank and no
+AI is in play, `build_catalog` does not stay quiet. It prints the blank-field
+census, names the image-only pages (where the data lives in the photos, not the
+text), and recommends the tier:
+
+```
+terbium: 8/121 products have a name, 0 a SKU, 9 materials/ingredients.
+82 page(s) are image-only (1, 5, 6, 7, 8, ...) - the data lives in the photos, not the text.
+-> set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)   recommended tier: Opus (vision)
+```
+
+Silence it with `build_catalog(..., announce=False)`, or ask for the message
+yourself with `terbium.catalog.catalog_escalation(rows)`.
 
 ## Proven across categories
 
