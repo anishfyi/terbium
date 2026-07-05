@@ -345,3 +345,25 @@ def test_csv_roundtrip(tmp_path):
     doc = terbium.parse(str(p), announce=False)
     assert doc.stats.total == 2
     assert {r.sku for r in doc.records} == {"35155", "50027"}
+
+
+def test_catalog_escalation_fires_on_blank_table():
+    from terbium.catalog import catalog_escalation
+
+    rows = [{"sku": None, "name": None, "materials": None, "image": f"p{i}.jpeg",
+             "page": i, "_context": ""} for i in range(1, 11)]
+    rows[0].update(name="Virasat", _context="Virasat solid mango wood")
+    msg = catalog_escalation(rows)
+    assert msg is not None
+    assert "1/10 products have a name" in msg
+    assert "image-only" in msg and "Opus (vision)" in msg
+    assert "ai=terbium.AI(...)" in msg
+
+
+def test_catalog_escalation_quiet_when_healthy():
+    from terbium.catalog import catalog_escalation
+
+    rows = [{"sku": f"RG-{i}", "name": f"Rug {i}", "materials": "wool",
+             "image": None, "page": 1, "_context": "text"} for i in range(10)]
+    assert catalog_escalation(rows) is None
+    assert catalog_escalation([]) is None
