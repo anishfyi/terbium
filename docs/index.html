@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>terbium - a god-level algorithmic multi-file parser</title>
-  <meta name="description" content="terbium reconstructs a document's structure geometrically, scores its own confidence per record, pulls out the product images, and only calls an AI model when it is genuinely stuck. Parses PDF, PPTX, XLSX, CSV." />
+  <title>terbium - catalogue in, product catalog out</title>
+  <meta name="description" content="terbium turns any vendor catalogue (PDF, PPTX, XLSX, CSV) into commerce-ready product records: name, SKU, materials, price, and the product photo, extracted and named. Deterministic geometry first, confidence-scored, AI only when genuinely stuck." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -341,7 +341,7 @@
     <div class="wrap nav">
       <div class="brand">
         <span class="wordmark">terbium<span class="dot"></span></span>
-        <span class="microtag">Multi-File Parser</span>
+        <span class="microtag">Catalogue Parser</span>
       </div>
       <nav class="nav-links">
         <a href="#quickstart">Docs</a>
@@ -355,13 +355,15 @@
   <section class="hero">
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>Algorithmic first - AI only when stuck</span>
-      <h1>It parses the file.<br /><span class="muted">It knows when it can't.</span></h1>
+      <h1>Catalogue in. Product catalog out.<br /><span class="muted">It knows when it can't.</span></h1>
       <p class="sub">
-        terbium reconstructs a document's structure geometrically, detecting columns, rows,
-        and 2-D matrices from the raw position of the text. It <b>scores its own confidence
-        on every record</b> and only reaches for an AI model when it is genuinely stuck. Give
-        it no key and it will not fail silently or burn tokens, it tells you so, <b>by name</b>,
-        and which model tier it recommends.
+        Point terbium at any vendor catalogue, furniture, rugs, lamps, bags, handwash,
+        anything, and get back <b>a table of products</b>: name, SKU, materials or
+        ingredients, and the product photo, extracted and named. Not markdown to re-parse,
+        <b>commerce-ready records</b>. It rebuilds structure from raw geometry, <b>scores its
+        own confidence on every row</b>, and only reaches for an AI model when it is genuinely
+        stuck. No key? It will not fail silently or burn tokens, it tells you what is
+        missing, <b>by name</b>.
       </p>
       <div class="btns">
         <a href="#quickstart" class="btn btn-primary">Get started <span class="arr">-&gt;</span></a>
@@ -385,15 +387,41 @@
     </div>
   </section>
 
+  <!-- ===================== THE CATALOG TABLE ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>The one thing terbium does</span>
+      <h2>One call. One clean product table.</h2>
+      <p class="lead">
+        Each product photo anchors a row: terbium extracts the image, names it from the label
+        beneath it, and mines the nearby text for the SKU and the materials. Then a CSV,
+        ready for a PIM, Shopify, or a marketplace feed.
+      </p>
+
+      <div class="code">
+        <div class="cbar"><span class="lbl">python</span><span class="lbl">build_catalog</span></div>
+        <div class="cbody">
+<pre><span class="kw">import</span> terbium
+
+rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"vendor_catalogue.pdf"</span>, images_dir=<span class="str">"images/"</span>)
+terbium.<span class="fn">to_catalog_csv</span>(rows, <span class="str">"catalogue.csv"</span>)
+<span class="cmt"># {"sku": "RG-1001", "name": "Anatolia Kilim",</span>
+<span class="cmt">#  "materials": "wool", "image": "Anatolia_Kilim.jpeg", "page": 12}</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== ASKS BY NAME ===================== -->
   <section class="band">
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>Confidence, not guesswork</span>
       <h2>It asks for help by name.</h2>
       <p class="lead">
-        Every run ends with a verdict, not a stack trace. When the geometry is unambiguous,
-        terbium finishes cold with zero tokens spent. When a handful of pages are genuinely
-        hard, it says exactly which ones, <b>why</b>, and what to hand it next.
+        Every run ends with a verdict, not a stack trace. When the layout carries the data,
+        terbium finishes cold with zero tokens spent. When a catalogue buries its facts in
+        photos or prose, it says exactly what is missing, <b>where the data actually lives</b>,
+        and what to hand it next.
       </p>
 
       <div class="terminal">
@@ -402,9 +430,9 @@
           <span class="term-title">terbium - run summary</span>
         </div>
         <div class="term-body">
-<pre><span class="ok">terbium: 47/52 products parsed confidently.</span>
-<span class="warn">5 pages have ambiguous matrices (orphan SKUs, uncertain column alignment).</span>
-<span class="hint">-&gt; set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)</span>   <span class="sep">&middot;</span>   recommended tier: <span class="tier">Opus</span></pre>
+<pre><span class="ok">terbium: 8/121 products have a name, 0 a SKU, 9 materials/ingredients.</span>
+<span class="warn">82 page(s) are image-only (1, 5, 6, 7, 8, ...) - the data lives in the photos, not the text.</span>
+<span class="hint">-&gt; set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)</span>   <span class="sep">&middot;</span>   recommended tier: <span class="tier">Opus (vision)</span></pre>
         </div>
       </div>
     </div>
@@ -452,9 +480,11 @@
         on it and parses them cleanly and cheaply.
       </p>
       <p class="cards-note">
-        <b>The detector is content-agnostic.</b> Any column-aligned table, a financial grid, a spec
-        sheet, a schedule, or a furniture size x finish matrix, reconstructs the same way. terbium is
-        a general parser first; the furniture schema is an opt-in interpretation on top, not the limit.
+        <b>The detector is content-agnostic.</b> Any column-aligned table, a pricelist, a spec
+        sheet, a size x finish matrix, reconstructs the same way, whatever the category. The
+        universal <b>product schema</b> then maps the columns to product fields by header meaning:
+        a bag gets capacity, a lamp gets wattage, a rug gets pile, without a hand-written schema per
+        category.
       </p>
       <p class="cards-note">
         <b>Not every PDF is a matrix.</b> A lookbook, a grid of photos with a name under each, is
@@ -500,12 +530,13 @@ manifest = terbium.<span class="fn">export_images</span>(<span class="str">"look
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>Quickstart</span>
       <h2>Parse first. Add a key only when it asks.</h2>
-      <p class="lead">Install, point it at a file, and read <b>doc.stats</b>. Wire up an AI key when, and only when, terbium tells you a page is genuinely hard.</p>
+      <p class="lead">Install, point it at a catalogue, and read the table. Wire up an AI key when, and only when, terbium tells you the data lives somewhere the algorithm cannot reach.</p>
 
       <div class="code">
         <div class="cbar"><span class="lbl">shell</span><span class="lbl">pypi</span></div>
         <div class="cbody">
-<pre>pip install terbium-parse</pre>
+<pre>pip install terbium-parse
+terbium catalogue.pdf --csv out.csv        <span class="cmt"># the product table + images/, no AI</span></pre>
         </div>
       </div>
 
@@ -514,11 +545,12 @@ manifest = terbium.<span class="fn">export_images</span>(<span class="str">"look
         <div class="cbody">
 <pre><span class="kw">import</span> terbium
 
-doc = terbium.<span class="fn">parse</span>(<span class="str">"Furniture Catalogue.pdf"</span>)          <span class="cmt"># algorithmic only</span>
-<span class="fn">print</span>(doc.stats)                                          <span class="cmt"># {confident: 47, ambiguous: 5}</span>
+rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"catalogue.pdf"</span>, images_dir=<span class="str">"images/"</span>)   <span class="cmt"># algorithmic only</span>
 
-doc = terbium.<span class="fn">parse</span>(<span class="str">"catalogue.pdf"</span>, schema=<span class="str">"furniture"</span>,
-                    ai=terbium.<span class="fn">AI</span>(anthropic_key=...))     <span class="cmt"># AI on hard pages only</span></pre>
+rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"lookbook.pdf"</span>, images_dir=<span class="str">"images/"</span>,
+                             ai=terbium.<span class="fn">AI</span>(anthropic_key=...))       <span class="cmt"># vision fills the blanks</span>
+
+doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</span>, schema=<span class="str">"product"</span>)              <span class="cmt"># raw records API</span></pre>
         </div>
       </div>
     </div>
@@ -545,7 +577,7 @@ doc = terbium.<span class="fn">parse</span>(<span class="str">"catalogue.pdf"</s
         <div class="route">
           <div class="rk">Hard</div>
           <div class="rv"><span class="d" style="background:var(--c-pdf)"></span>Opus</div>
-          <p>Ambiguous matrices and orphan SKUs. The real work.</p>
+          <p>Ambiguous matrices, orphan SKUs, image-only lookbook pages. The real work.</p>
         </div>
       </div>
 
