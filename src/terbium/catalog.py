@@ -14,6 +14,7 @@ import csv
 import io
 import os
 import re
+import sys
 from typing import List, Optional
 
 from .documents.pdf import PdfAdapter
@@ -160,13 +161,55 @@ def _table_rows(path: str, ai=None) -> List[dict]:
     return rows
 
 
-def build_catalog(path: str, images_dir: Optional[str] = None, ai=None, **kw) -> List[dict]:
+def catalog_escalation(rows: List[dict]) -> Optional[str]:
+    """The honest "bring an AI key" message for a half-blank catalog table.
+
+    Fires when a meaningful share of rows is missing a name, SKU, or materials
+    after the deterministic pass. Names the image-only pages (where the data
+    lives in the photos, not the text) and recommends the vision tier for them.
+    Returns None when the table is healthy enough to stay quiet.
+    """
+    total = len(rows)
+    if not total:
+        return None
+    named = sum(1 for r in rows if r.get("name"))
+    skus = sum(1 for r in rows if r.get("sku"))
+    mats = sum(1 for r in rows if r.get("materials"))
+    blank_share = 1 - min(named, max(skus, mats)) / total
+    if named >= 0.6 * total and max(skus, mats) >= 0.6 * total:
+        return None
+    image_only = sorted({r["page"] for r in rows
+                         if not (r.get("_context") or "").strip() and r.get("image")})
+    page_str = ", ".join(str(p) for p in image_only[:8])
+    if len(image_only) > 8:
+        page_str += ", ..."
+    lines = [
+        f"terbium: {named}/{total} products have a name, {skus} a SKU, "
+        f"{mats} materials/ingredients."
+    ]
+    if image_only:
+        lines.append(
+            f"{len(image_only)} page(s) are image-only ({page_str}) - "
+            "the data lives in the photos, not the text."
+        )
+    tier = "Opus (vision)" if image_only and blank_share > 0.5 else "Sonnet"
+    lines.append(
+        "-> set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)   "
+        f"recommended tier: {tier}"
+    )
+    return "\n".join(lines)
+
+
+def build_catalog(path: str, images_dir: Optional[str] = None, ai=None,
+                  announce: bool = True, **kw) -> List[dict]:
     """Parse a catalogue into product rows: sku, name, materials, image, page.
 
     For image-bearing PDFs, each product photo anchors a row (name from the label
     beneath it; SKU and materials mined from nearby text). For pricelist-style
     catalogues (or when no photos are found), rows come from the product table.
     Pass ``ai`` to fill SKU/materials the layout hides (see ``enrich_catalog``).
+    ``announce``: when the table comes back half-blank and no AI is in play,
+    print the escalation message to stderr instead of staying silent.
     """
     ext = os.path.splitext(path)[1].lower().lstrip(".")
     rows: List[dict] = []
@@ -178,6 +221,10 @@ def build_catalog(path: str, images_dir: Optional[str] = None, ai=None, **kw) ->
         from .harness.catalog_ai import enrich_catalog
 
         rows = enrich_catalog(rows, path, images_dir, ai)
+    if announce and (ai is None or not getattr(ai, "available", False)):
+        msg = catalog_escalation(rows)
+        if msg:
+            print(msg, file=sys.stderr)
     for r in rows:
         r.pop("_context", None)
     return rows
