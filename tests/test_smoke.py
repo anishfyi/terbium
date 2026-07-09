@@ -263,9 +263,9 @@ def test_catalog_helpers_and_sku_strictness():
     assert _find_materials(["Crafted from solid mango wood"], None).startswith("solid mango wood") \
         or _find_materials(["Crafted from solid mango wood"], None) == "mango, wood"
     csv_text = to_catalog_csv([{"sku": "RG-1", "name": "Kilim", "materials": "wool",
-                                "image": "kilim.jpg", "page": 2}])
-    assert csv_text.splitlines()[0] == "SKU,Name,Materials/Ingredients,Image,Page"
-    assert "RG-1,Kilim,wool,kilim.jpg,2" in csv_text
+                                "dimensions": "160x230 cm", "image": "kilim.jpg", "page": 2}])
+    assert csv_text.splitlines()[0] == "SKU,Name,Materials/Ingredients,Dimensions,Image,Page"
+    assert "RG-1,Kilim,wool,160x230 cm,kilim.jpg,2" in csv_text
 
 
 def test_catalog_ai_fills_blanks(monkeypatch):
@@ -353,11 +353,17 @@ def test_catalog_escalation_fires_on_blank_table():
     rows = [{"sku": None, "name": None, "materials": None, "image": f"p{i}.jpeg",
              "page": i, "_context": ""} for i in range(1, 11)]
     rows[0].update(name="Virasat", _context="Virasat solid mango wood")
+    # Before any OCR pass: the message counts what was read and offers OCR first.
     msg = catalog_escalation(rows)
     assert msg is not None
-    assert "1/10 products have a name" in msg
-    assert "image-only" in msg and "Opus (vision)" in msg
-    assert "ai=terbium.AI(...)" in msg
+    assert "10 products - 1 named" in msg
+    assert "no readable text" in msg
+    assert "ocr=True" in msg and "ai=terbium.AI(...)" in msg
+    # After a local OCR pass already ran, the next lever is the vision lane, not OCR.
+    msg_ocr = catalog_escalation(rows, ocr_ran=True)
+    assert "a local OCR pass already ran" in msg_ocr
+    assert "ocr=True" not in msg_ocr
+    assert "ai=terbium.AI(...)" in msg_ocr
 
 
 def test_catalog_escalation_quiet_when_healthy():

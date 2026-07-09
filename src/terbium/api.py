@@ -95,18 +95,26 @@ def parse(
     ai=None,
     threshold: float = DEFAULT_THRESHOLD,
     announce: bool = True,
+    ocr="auto",
 ) -> ParsedDocument:
     """Parse a PDF/PPTX/XLSX/CSV file into structured, confidence-scored records.
 
     ``schema``: "generic" (default) or "furniture", or a Schema instance.
     ``ai``: a ``terbium.AI(...)``, ``True`` (use env keys), or ``None`` (off).
     ``threshold``: confidence below which a record is "ambiguous".
+    ``ocr``: ``"auto"`` reads image-only pages with a local Tesseract pass (no
+    API key; no-op when Tesseract is absent). ``True``/``False`` forces it.
     ``announce``: print the escalation message to stderr when AI could help but
     no key is set. This is terbium telling you it is stuck.
     """
     adapter = get_adapter(path)
     pages = adapter.parse(path)
     source_kind = pages[0].source_kind if pages else "unknown"
+    if source_kind == "pdf" and pages:
+        from .layout import ocr as _ocr
+        use_ocr = ocr if isinstance(ocr, bool) else (ocr == "auto" and _ocr.available())
+        if use_ocr:
+            _ocr.enrich_pdf_pages(pages, path)
 
     schema_obj = get_schema(schema)
     furniture_mode = getattr(schema_obj, "name", None) == "furniture"
