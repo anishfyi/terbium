@@ -154,3 +154,76 @@ def export_images(
     finally:
         doc.close()
     return manifest
+
+
+def _pptx_title(slide) -> Optional[str]:
+    try:
+        if slide.shapes.title is not None and slide.shapes.title.text.strip():
+            return slide.shapes.title.text.strip()
+    except Exception:
+        pass
+    return None
+
+
+def export_pptx_images(
+    path: str,
+    out_dir: str,
+    ocr: bool = False,
+    only_photos: bool = True,
+    min_side: int = 180,
+    max_aspect: float = 4.0,
+) -> List[dict]:
+    """Extract product pictures from a PPTX deck into ``out_dir``; return a
+    manifest. Each picture becomes a row anchor. Names come from the slide's
+    text (title/text boxes); when a slide is pure image, ``ocr`` reads any text
+    baked into the picture itself. Mirrors ``export_images`` for PDFs."""
+    from pptx import Presentation
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+    from PIL import Image
+
+    from .layout import ocr as _ocr
+
+    os.makedirs(out_dir, exist_ok=True)
+    prs = Presentation(path)
+    manifest: List[dict] = []
+    used_names: dict = {}
+    for i, slide in enumerate(prs.slides):
+        title = _pptx_title(slide)
+        slide_text = [sh.text_frame.text.strip() for sh in slide.shapes
+                      if sh.has_text_frame and sh.text_frame.text.strip()]
+        for shape in slide.shapes:
+            if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
+                continue
+            try:
+                blob = shape.image.blob
+                with Image.open(io.BytesIO(blob)) as im:
+                    w, h = im.size
+                    ext = (im.format or "png").lower()
+            except Exception:
+                continue
+            if only_photos:
+                lo, hi = min(w, h), max(w, h)
+                if lo < min_side or (lo and hi / lo > max_aspect):
+                    continue
+            # Real text (title/text boxes) names the product; OCR of the picture is
+            # kept separate because it only reliably yields codes/dimensions, not names.
+            ocr_text = ""
+            if ocr and not slide_text:
+                ocr_text = " \n".join(wd.text for wd in _ocr.ocr_image_words(blob))
+            stem = _safe(title) if title else f"slide{i + 1:03d}"
+            count = used_names.get(stem, 0) + 1
+            used_names[stem] = count
+            fname = f"{stem}.{ext}" if count == 1 else f"{stem}_{count}.{ext}"
+            with open(os.path.join(out_dir, fname), "wb") as f:
+                f.write(blob)
+            manifest.append({
+                "page": i + 1,
+                "title": title,
+                "file": fname,
+                "format": ext,
+                "width_px": w,
+                "height_px": h,
+                "slide_text": " \n".join(slide_text),
+                "ocr_text": ocr_text,
+            })
+    return manifest
