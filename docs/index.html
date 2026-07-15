@@ -96,6 +96,20 @@
       padding:8px 12px;border-radius:8px;transition:color .15s ease,background .15s ease;
     }
     .nav-links a:hover{color:var(--fg);background:var(--bg-2)}
+    /* ---------- sponsors modal (pure CSS :target) ---------- */
+    .sponsor-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+    .sponsor-modal:target{display:flex}
+    .sponsor-scrim{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
+    .sponsor-card{position:relative;z-index:1;background:var(--bg-1);border:1px solid var(--line-2);
+      border-radius:16px;padding:34px 40px 30px;text-align:center;max-width:380px;width:100%;
+      box-shadow:0 24px 70px rgba(0,0,0,.6)}
+    .sponsor-close{position:absolute;top:12px;right:16px;color:var(--fg-faint);font-size:22px;line-height:1;text-decoration:none}
+    .sponsor-close:hover{color:var(--fg)}
+    .sponsor-eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);margin-bottom:16px}
+    .sponsor-logo{display:inline-flex;align-items:center;opacity:.95;transition:opacity .15s}
+    .sponsor-logo:hover{opacity:1}
+    .sponsor-logo img{width:auto}
+    .sponsor-note{margin-top:18px;font-size:12.5px;line-height:1.55;color:var(--fg-dim)}
     .nav-links a.btn-gh{
       color:var(--fg);border:1px solid var(--line-2);
     }
@@ -345,6 +359,7 @@
       </div>
       <nav class="nav-links">
         <a href="#quickstart">Docs</a>
+        <a href="#sponsors">Sponsors</a>
         <a href="https://github.com/anishfyi/terbium" class="btn-gh">GitHub</a>
         <a href="https://github.com/anishfyi/trove">Trove</a>
       </nav>
@@ -588,15 +603,6 @@ doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</
     </div>
   </section>
 
-  <!-- ===================== SPONSORS ===================== -->
-  <section class="wrap" style="text-align:center;padding:56px 0 8px;border-top:1px solid var(--line)">
-    <div style="font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-faint);margin-bottom:18px">Sponsors</div>
-    <a href="https://nodemaven.com/" title="NodeMaven - residential and mobile proxies"
-       style="display:inline-flex;align-items:center;opacity:.9;transition:opacity .15s">
-      <img src="sponsors/nodemaven.svg" alt="NodeMaven" height="42" style="width:auto">
-    </a>
-  </section>
-
   <!-- ===================== FOOTER ===================== -->
   <footer>
     <div class="wrap foot">
@@ -614,5 +620,19 @@ doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</
       </div>
     </div>
   </footer>
+
+  <!-- ===================== SPONSORS MODAL (pure CSS :target) ===================== -->
+  <div id="sponsors" class="sponsor-modal">
+    <a href="#" class="sponsor-scrim" aria-label="Close"></a>
+    <div class="sponsor-card" role="dialog" aria-modal="true" aria-label="Sponsors">
+      <a href="#" class="sponsor-close" aria-label="Close">&times;</a>
+      <div class="sponsor-eyebrow">Sponsored by</div>
+      <a href="https://nodemaven.com/" target="_blank" rel="noopener sponsored"
+         title="NodeMaven - residential and mobile proxies" class="sponsor-logo">
+        <img src="sponsors/nodemaven.svg" alt="NodeMaven" height="40">
+      </a>
+      <p class="sponsor-note">terbium is free and MIT licensed. NodeMaven helps keep it that way.</p>
+    </div>
+  </div>
 </body>
 </html>
