@@ -12,7 +12,7 @@ the algorithm cannot be sure.
 [![License: MIT](https://img.shields.io/badge/license-MIT-000000.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-000000.svg)](pyproject.toml)
 [![formats](https://img.shields.io/badge/PDF_PPTX_XLSX_CSV-000000.svg)](#what-it-parses)
-[![version](https://img.shields.io/badge/version-0.9.5-000000.svg)](pyproject.toml)
+[![version](https://img.shields.io/badge/version-0.9.6-000000.svg)](pyproject.toml)
 
 [Website](https://anishfyi.github.io/terbium) · [Trove](https://github.com/anishfyi/trove)
 
