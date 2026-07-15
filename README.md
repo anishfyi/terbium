@@ -21,7 +21,7 @@ the algorithm cannot be sure.
 <h3 align="center">Sponsors</h3>
 
 <p align="center">
-  <a href="https://nodemaven.com/" title="NodeMaven - residential and mobile proxies">
+  <a href="https://go.nodemaven.com/terbiumGitHub" title="NodeMaven - residential and mobile proxies">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/sponsors/nodemaven-dark.svg">
       <img src="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/sponsors/nodemaven-light.svg" alt="NodeMaven" height="40">
