@@ -18,6 +18,8 @@ the algorithm cannot be sure.
 
 </div>
 
+---
+
 <h3 align="center">Sponsors</h3>
 
 <p align="center">
