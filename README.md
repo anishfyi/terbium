@@ -12,11 +12,22 @@ the algorithm cannot be sure.
 [![License: MIT](https://img.shields.io/badge/license-MIT-000000.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-000000.svg)](pyproject.toml)
 [![formats](https://img.shields.io/badge/PDF_PPTX_XLSX_CSV-000000.svg)](#what-it-parses)
-[![version](https://img.shields.io/badge/version-0.9.3-000000.svg)](pyproject.toml)
+[![version](https://img.shields.io/badge/version-0.9.5-000000.svg)](pyproject.toml)
 
 [Website](https://anishfyi.github.io/terbium) · [Trove](https://github.com/anishfyi/trove)
 
 </div>
+
+<h3 align="center">Sponsors</h3>
+
+<p align="center">
+  <a href="https://nodemaven.com/" title="NodeMaven - residential and mobile proxies">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/sponsors/nodemaven-dark.svg">
+      <img src="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/sponsors/nodemaven-light.svg" alt="NodeMaven" height="40">
+    </picture>
+  </a>
+</p>
 
 ---
 
