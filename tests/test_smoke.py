@@ -258,6 +258,9 @@ def test_catalog_helpers_and_sku_strictness():
     assert _find_sku(["RG-1001 Anatolia Kilim"]) == "RG-1001"
     assert _find_sku(["20156"]) == "20156"           # 5-digit article
     assert _find_sku(["Page 12", "1899", "2026"]) is None
+    # rate-style prices are not SKUs (real durry catalogue printed "2.25/SQFT")
+    assert _find_sku(["Price - 2.25/SQFT"]) is None
+    assert _find_sku(["40/PC", "12.50/SQM"]) is None
     # materials from a labelled line and from prose material terms
     assert _find_materials(["Material: Solid Oak"], None) == "Solid Oak"
     assert _find_materials(["Crafted from solid mango wood"], None).startswith("solid mango wood") \
