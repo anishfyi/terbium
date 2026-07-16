@@ -88,6 +88,7 @@ def export_images(
     dedupe_repeats: bool = True,
     min_side: int = 180,
     max_aspect: float = 4.0,
+    _kinds: tuple = ("photo",),
 ) -> List[dict]:
     """Extract images from ``path`` into ``out_dir``; return a manifest.
 
@@ -116,7 +117,7 @@ def export_images(
             collection = _labels._pick_collection(items, p) if items else None
             for im in p.images:
                 if only_photos:
-                    if im.kind != "photo":
+                    if im.kind not in _kinds:
                         continue
                     lo, hi = min(im.width, im.height), max(im.width, im.height)
                     if lo < min_side or (lo and hi / lo > max_aspect):
@@ -153,6 +154,17 @@ def export_images(
                 })
     finally:
         doc.close()
+
+    if only_photos and not manifest and "swatch" not in _kinds:
+        # Thumbnail sheets: some catalogues print EVERY product photo below the
+        # photo threshold (a real "ready to ship" sheet embedded 30 product
+        # JPEGs at ~100-160px, so they all classified as swatches and the page
+        # yielded nothing). Small product photos beat none - retry once
+        # accepting swatch-sized images with a relaxed floor.
+        return export_images(path, out_dir, only_photos=only_photos,
+                             associate=associate, dedupe_repeats=dedupe_repeats,
+                             min_side=64, max_aspect=max_aspect,
+                             _kinds=("photo", "swatch"))
     return manifest
 
 
