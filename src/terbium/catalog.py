@@ -52,6 +52,7 @@ def _page_lines(page) -> List[str]:
 _SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")
 _DIM_TOK = re.compile(r"^\d+(?:\.\d+)?(?:cm|mm|m|ml|l|kg|g|in|\")$", re.IGNORECASE)
 _ORD_TOK = re.compile(r"^\d+(?:st|nd|rd|th)$", re.IGNORECASE)          # 1st, 21st
+_RATE_TOK = re.compile(r"^\d+(?:\.\d+)?/[A-Za-z]{1,6}\.?$")            # 2.25/SQFT, 40/PC
 
 
 def _find_sku(lines: List[str]) -> Optional[str]:
@@ -61,7 +62,8 @@ def _find_sku(lines: List[str]) -> Optional[str]:
     for text in lines:
         for tok in text.split():
             t = tok.strip(".,;:()[]")
-            if not _SKU_TOK.match(t) or _DIM_TOK.match(t) or _ORD_TOK.match(t):
+            if not _SKU_TOK.match(t) or _DIM_TOK.match(t) or _ORD_TOK.match(t) \
+                    or _RATE_TOK.match(t):
                 continue
             alpha = sum(c.isalpha() for c in t)
             digits = sum(c.isdigit() for c in t)
@@ -169,7 +171,12 @@ def _deterministic_rows(path: str, images_dir: str, ocr: bool = False, **kw) -> 
         text = caption + page_lines
         rows.append({
             "sku": _find_sku(caption) or _find_sku(page_lines),
-            "name": m["product"] or _clean_name(titles.get(m["page"] - 1)),
+            # caption label, else the page's heading, else a plausible name
+            # line from the caption zone (catalogues that print the product
+            # name under the photo in body-size type, not as a heading)
+            "name": (m["product"]
+                     or _clean_name(titles.get(m["page"] - 1))
+                     or _clean_name(_name_from_lines(caption))),
             "materials": _find_materials(text, m["product"]),
             "dimensions": _find_dimensions(text),
             "image": m["file"],
