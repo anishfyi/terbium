@@ -1,4 +1,4 @@
-# terbium — a god-level algorithmic multi-file parser that knows when to call AI
+# terbium: a god-level algorithmic multi-file parser that knows when to call AI
 
 **Status:** DRAFT design for approval (2026-07-03).
 Repo target: github.com/anishfyi/terbium (public, MIT). Nothing created yet.
