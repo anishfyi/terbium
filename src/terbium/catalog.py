@@ -102,7 +102,7 @@ def _page_title(page) -> Optional[str]:
 
 
 def _clean_name(t: Optional[str]) -> Optional[str]:
-    """Reject OCR/heading junk ('TE', '——', 'S18') so a bad guess never beats a
+    """Reject OCR/heading junk ('TE', '--', 'S18') so a bad guess never beats a
     blank. Keeps only mostly-alphabetic strings of real length."""
     if not t:
         return None
@@ -119,7 +119,7 @@ def _find_materials(lines: List[str], name: Optional[str]) -> Optional[str]:
         low = ln.lower().strip()
         for label in _MAT_LABEL:
             if low.startswith(label):
-                rest = ln[len(label):].lstrip(" :-–—").strip()
+                rest = ln[len(label):].lstrip(" :-–-").strip()
                 if rest:
                     return rest[:120]
     # a composition line: "78% polyacrylic, 20% polyester"
