@@ -31,7 +31,8 @@ for r in doc.records:
 | Argument | Meaning |
 |---|---|
 | `path` | the PDF / PPTX / XLSX / CSV file |
-| `schema` | `"generic"` (default) or `"furniture"`, or a `Schema` instance |
+| `schema` | `"generic"` (default), `"product"`, `"furniture"`, `"transaction"`, `"resume"`, or a `Schema` instance |
+| `doc_type` | `"auto"` (default) or `catalog`/`transaction`/`resume`/... override |
 | `ai` | `terbium.AI(...)`, `True` (use env keys), or `None` (off) |
 | `threshold` | confidence below which a record counts as ambiguous (default `0.72`) |
 | `announce` | print the escalation message to stderr when a key would help (default `True`) |
@@ -49,11 +50,21 @@ for r in doc.records:
 ## Command line
 
 ```bash
+terbium catalogue.pdf                    # auto-classify; print table + extract images
+terbium catalogue.pdf --csv out.csv      # write CSV
 terbium catalogue.pdf --schema furniture
 terbium report.xlsx --json out.json
+terbium invoice.pdf --type transaction   # force transaction lane
+terbium invoice.pdf --csv rows.csv --html report.html   # any lane: csv + self-contained report
+terbium resume.pdf --html out.html --open
 terbium deck.pptx --ai --tier opus       # enable AI, pin the tier
-terbium lookbook.pdf --images out/       # extract product photos + manifest.csv
+terbium lookbook.pdf --images out/       # extract product photos
+terbium scan.png                         # image file via OCR adapter
 ```
+
+See [documents.md](documents.md) for transaction/resume lanes and output flags.
+The same call reads catalogues, invoices, receipts, and resumes; see
+[TAXONOMY.md](TAXONOMY.md) for the full map of document types and formats.
 
 ## Pulling out images
 

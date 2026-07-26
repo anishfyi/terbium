@@ -1,8 +1,12 @@
 # Formats
 
-terbium ships four first-class adapters. Each turns bytes on disk into the same
-normalized shape: positioned `Word`s, `ImageRef`s, and (where the format exposes
-one) a native table. Everything smart happens after, on that uniform view.
+terbium ships adapters for PDF, PPTX, XLSX, CSV, and image files (PNG/JPG/JPEG/
+WEBP/TIFF). Each turns bytes on disk into the same normalized shape: positioned
+`Word`s, `ImageRef`s, and (where the format exposes one) a native table.
+Everything smart happens after, on that uniform view.
+
+For the reverse question, which kinds of documents exist and which lane reads
+each, see [TAXONOMY.md](TAXONOMY.md).
 
 ## PDF
 
@@ -30,9 +34,10 @@ The hard case, and where the geometry engine runs in full.
 Not every PDF is a dimension x finish matrix.
 
 - **Label grids.** A lookbook is a grid of product photos with a name under each.
-  When a document is mostly not matrices, terbium enters lookbook mode: it
-  segments each row into separate labels, stitches wrapped names back together,
-  and groups them under the page's collection title. One record per product.
+  terbium uses a per-page lookbook heuristic (not whole-document all-or-nothing):
+  it segments each row into separate labels, stitches wrapped names back together,
+  and groups them under the page's collection title. Sparse pages (1-2 photos) and
+  dense grids (8-12+ products/page) are both supported.
 - **Image-only pages.** A page with images but no text layer cannot be read
   algorithmically. terbium records these and reports them, so an image catalogue
   returns an honest "these pages need the vision lane" instead of nothing.
@@ -53,6 +58,11 @@ their span so multi-column headers survive. One sheet becomes one page.
 
 The delimiter, encoding, and whether a header row exists are all sniffed. Values
 become a single native table. The easy case, handled honestly.
+
+## Images (PNG/JPG/JPEG/WEBP/TIFF)
+
+Standalone image files become a single `Page` with one `ImageRef`. Words are
+synthesized via the local Tesseract bridge when installed. See [documents.md](documents.md).
 
 ## Adding a format
 

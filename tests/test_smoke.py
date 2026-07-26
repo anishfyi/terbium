@@ -376,3 +376,221 @@ def test_catalog_escalation_quiet_when_healthy():
              "image": None, "page": 1, "_context": "text"} for i in range(10)]
     assert catalog_escalation(rows) is None
     assert catalog_escalation([]) is None
+
+
+# ---- Phase 3-5: classification, transactions, resumes, render ----------------
+
+
+def _photo_bytes(color):
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 150), color).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _make_invoice_pdf(path):
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=612, height=792)
+    pg.insert_text((50, 50), "INVOICE", fontsize=18)
+    pg.insert_text((50, 90), "Invoice Number: INV-2024-001", fontsize=11)
+    pg.insert_text((50, 110), "Date: 01/15/2024", fontsize=11)
+    pg.insert_text((50, 130), "Bill To: Acme Corp", fontsize=11)
+    pg.insert_text((50, 150), "Vendor: Widget Supply Co", fontsize=11)
+    pg.insert_text((50, 200), "Widget Assembly .............. $125.00", fontsize=11)
+    pg.insert_text((50, 220), "Shipping ...................... $15.00", fontsize=11)
+    pg.insert_text((50, 280), "Subtotal: $140.00", fontsize=11)
+    pg.insert_text((50, 300), "Tax: $11.20", fontsize=11)
+    pg.insert_text((50, 320), "Total Due: $151.20", fontsize=11)
+    doc.save(path)
+    doc.close()
+
+
+def _make_receipt_pdf(path):
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=400, height=600)
+    pg.insert_text((30, 40), "RECEIPT", fontsize=14)
+    pg.insert_text((30, 70), "Receipt No: R-8891", fontsize=10)
+    pg.insert_text((30, 90), "Date: 03/22/2024", fontsize=10)
+    pg.insert_text((30, 130), "Coffee ................ $4.50", fontsize=10)
+    pg.insert_text((30, 150), "Muffin ................ $3.25", fontsize=10)
+    pg.insert_text((30, 190), "Total: $7.75", fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
+def _make_resume_pdf(path):
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=612, height=792)
+    pg.insert_text((50, 50), "Jane Developer", fontsize=16)
+    pg.insert_text((50, 75), "jane@example.com | (555) 123-4567", fontsize=10)
+    pg.insert_text((50, 120), "EXPERIENCE", fontsize=12)
+    pg.insert_text((50, 145), "Senior Engineer at TechCo (2020-2024)", fontsize=10)
+    pg.insert_text((50, 180), "EDUCATION", fontsize=12)
+    pg.insert_text((50, 205), "B.S. Computer Science, State University", fontsize=10)
+    pg.insert_text((50, 240), "SKILLS", fontsize=12)
+    pg.insert_text((50, 265), "Python, SQL, distributed systems", fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
+def _make_dense_catalog_pdf(path, n=12):
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=820, height=1040)
+    cols, rows = 4, 3
+    for i in range(n):
+        col, row = i % cols, i // cols
+        x0 = 30 + col * 195
+        y0 = 40 + row * 320
+        pg.insert_image(fitz.Rect(x0, y0, x0 + 160, y0 + 120), stream=_photo_bytes((80 + i * 10, 100, 120)))
+        pg.insert_text((x0, y0 + 130), f"Product {i + 1}", fontsize=9)
+        pg.insert_text((x0, y0 + 148), f"SKU: P-{100 + i}", fontsize=8)
+    doc.save(path)
+    doc.close()
+
+
+def _make_sparse_catalog_pdf(path):
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=600, height=800)
+    pg.insert_image(fitz.Rect(50, 50, 350, 300), stream=_photo_bytes((140, 90, 70)))
+    pg.insert_text((50, 320), "Lone Product", fontsize=14)
+    pg.insert_text((50, 350), "SKU: LP-001", fontsize=10)
+    pg.insert_text((50, 370), "Material: Oak", fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
+def test_classifier_routes_invoice(tmp_path):
+    from terbium.classify import classify
+    from terbium.documents.pdf import PdfAdapter
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_invoice_pdf(path)
+    pages = PdfAdapter().parse(path)
+    doc_type, scores = classify(pages)
+    assert doc_type == "transaction"
+    assert scores["transaction"] > scores.get("catalog", 0)
+
+
+def test_classifier_routes_resume(tmp_path):
+    from terbium.classify import classify
+    from terbium.documents.pdf import PdfAdapter
+
+    path = str(tmp_path / "resume.pdf")
+    _make_resume_pdf(path)
+    pages = PdfAdapter().parse(path)
+    doc_type, _ = classify(pages)
+    assert doc_type == "resume"
+
+
+def test_transaction_schema_fields(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_invoice_pdf(path)
+    doc = terbium.parse(path, doc_type="transaction", announce=False)
+    fields = {k: v for r in doc.records for k, v in r.fields.items()}
+    assert doc.doc_type == "transaction"
+    assert any("invoice" in str(v).lower() or "inv" in str(v).lower()
+               for v in fields.values()) or fields.get("number")
+
+
+def test_resume_schema_fields(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "resume.pdf")
+    _make_resume_pdf(path)
+    doc = terbium.parse(path, doc_type="resume", announce=False)
+    sections = {r.fields.get("section") for r in doc.records}
+    assert "header" in sections or any(r.fields.get("email") for r in doc.records)
+
+
+def test_csv_union_output(tmp_path):
+    from terbium.model.record import Record
+    from terbium.render.csv_out import to_csv
+
+    recs = [
+        Record(sku="A", fields={"name": "one", "color": "red"}, source_page=0, confidence=0.9),
+        Record(sku="B", fields={"name": "two", "size": "L"}, source_page=0, confidence=0.8),
+    ]
+    text = to_csv(recs)
+    header = text.splitlines()[0]
+    assert "color" in header and "size" in header
+    assert "red" in text and "L" in text
+
+
+def test_html_render_never_crashes():
+    from terbium.render.html import render_html
+    from terbium.model.record import Record
+
+    recs = [Record(sku="X", fields={"name": "Test & <item>"}, source_page=0, confidence=0.9)]
+    html = render_html(recs)
+    assert "<html" in html.lower()
+    assert "Test &amp;" in html
+
+
+def test_terminal_render_narrow_width():
+    from terbium.render.terminal import render_terminal_table
+
+    headers = ["SKU", "Name", "Materials"]
+    rows = [["RG-1001", "Anatolia Kilim with a very long name", "wool"]]
+    out = render_terminal_table(headers, rows, term_width=40)
+    assert out
+    assert "RG-1001" in out or "RG-100" in out
+
+
+def test_receipt_parsing(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "receipt.pdf")
+    _make_receipt_pdf(path)
+    doc = terbium.parse(path, doc_type="transaction", announce=False)
+    assert doc.stats.total >= 1
+
+
+def test_dense_catalog_extraction(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "dense.pdf")
+    _make_dense_catalog_pdf(path, n=12)
+    rows = terbium.build_catalog(path, images_dir=str(tmp_path / "img"), only_photos=False)
+    assert len(rows) >= 8
+
+
+def test_sparse_catalog_extraction(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "sparse.pdf")
+    _make_sparse_catalog_pdf(path)
+    rows = terbium.build_catalog(path, images_dir=str(tmp_path / "img"), only_photos=False)
+    assert len(rows) >= 1
+    assert any(r.get("sku") == "LP-001" or r.get("name") for r in rows)
+
+
+def test_forms_kv_extraction():
+    from terbium.layout.forms import extract_kv_pairs
+    from terbium.layout.lines import cluster_lines
+    from terbium.model.elements import Page, Word
+
+    def w(t, x, y):
+        return Word(text=t, x0=x, y0=y, x1=x + 8 * len(t), y1=y + 10, size=11)
+
+    words = [w("Invoice Number: INV-99", 50, 50), w("Date: 01/01/2024", 50, 70)]
+    page = Page(index=0, width=600, height=800, words=words, source_kind="pdf")
+    pairs = extract_kv_pairs(page)
+    labels = {p["label"].lower() for p in pairs}
+    assert any("invoice" in l for l in labels)
+
+
+def test_signal_amounts_and_dates():
+    from terbium.layout import signals
+
+    assert signals.find_amounts("Total: $151.20")
+    assert signals.find_dates("Date: 01/15/2024")
+    assert signals.find_emails("jane@example.com")
+    assert signals.find_invoice_numbers("Invoice Number: INV-2024-001")

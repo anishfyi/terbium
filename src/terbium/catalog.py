@@ -37,33 +37,53 @@ def _cx(w) -> float:
 
 
 def _caption_lines(page, bbox) -> List[str]:
-    """Lines sitting just below an image, horizontally aligned to it."""
-    if not bbox:
+    """Lines near an image: below, then right, then above (proximity-scored)."""
+    if not bbox or not page:
         return []
-    ix0, _, ix1, iy1 = bbox
-    zone = [w for w in page.words if ix0 - 25 <= _cx(w) <= ix1 + 25 and iy1 - 6 <= w.y0 <= iy1 + 190]
-    return [ln.text for ln in cluster_lines(zone) if ln.text.strip()]
+    ix0, iy0, ix1, iy1 = bbox
+    icx = (ix0 + ix1) / 2
+    radius = 200
+    candidates: List[tuple] = []
+    for ln in cluster_lines(page.words):
+        t = ln.text.strip()
+        if not t:
+            continue
+        cx = sum(w.cx for w in ln.words) / len(ln.words)
+        cy = ln.y
+        # below
+        if ix0 - 25 <= cx <= ix1 + 25 and iy1 - 6 <= cy <= iy1 + radius:
+            score = abs(cy - iy1) + abs(cx - icx) * 0.3
+            candidates.append((score, t, "below"))
+        # right
+        elif ix1 - 10 <= cx <= ix1 + radius and iy0 - 20 <= cy <= iy1 + 20:
+            score = abs(cx - ix1) + abs(cy - (iy0 + iy1) / 2) * 0.5 + 50
+            candidates.append((score, t, "right"))
+        # above
+        elif ix0 - 25 <= cx <= ix1 + 25 and iy0 - radius <= cy <= iy0 + 6:
+            score = abs(iy0 - cy) + abs(cx - icx) * 0.3 + 80
+            candidates.append((score, t, "above"))
+    candidates.sort(key=lambda x: x[0])
+    return [c[1] for c in candidates]
 
 
 def _page_lines(page) -> List[str]:
     return [ln.text for ln in cluster_lines(page.words) if ln.text.strip()]
 
 
-_SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")
+_SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")  # legacy helper
 _DIM_TOK = re.compile(r"^\d+(?:\.\d+)?(?:cm|mm|m|ml|l|kg|g|in|\")$", re.IGNORECASE)
 _ORD_TOK = re.compile(r"^\d+(?:st|nd|rd|th)$", re.IGNORECASE)          # 1st, 21st
 _RATE_TOK = re.compile(r"^\d+(?:\.\d+)?/[A-Za-z]{1,6}\.?$")            # 2.25/SQFT, 40/PC
 
 
 def _find_sku(lines: List[str]) -> Optional[str]:
-    """A real product code: two+ letters with a digit, a separated code like
-    ``MRP-962``, a 5-digit article, or a long barcode. Deliberately strict so page
-    numbers, years, prices (``R350``), and dimensions (``28cm``) are not SKUs."""
+    """A real product code using the generalized SKU pattern set."""
     for text in lines:
         for tok in text.split():
             t = tok.strip(".,;:()[]")
-            if not _SKU_TOK.match(t) or _DIM_TOK.match(t) or _ORD_TOK.match(t) \
-                    or _RATE_TOK.match(t):
+            if _DIM_TOK.match(t) or _ORD_TOK.match(t) or _RATE_TOK.match(t):
+                continue
+            if not signals.looks_like_sku_token(t):
                 continue
             alpha = sum(c.isalpha() for c in t)
             digits = sum(c.isdigit() for c in t)
