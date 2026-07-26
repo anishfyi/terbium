@@ -9,12 +9,13 @@ To read them cleanly this has to do two things a naive line reader cannot:
   labels, not one run;
 - stitch a wrapped label ("Meadow Bedside" over "Table") back into one name.
 
-It only fires on genuine label grids: a page with several images and names in at
-least two columns. A prose page with one hero image escalates to vision instead.
+It fires on genuine label grids: pages with product photos and names in at
+least two columns. Sparse pages (1-2 photos) and dense grids (8-12+ products)
+are both supported. A prose page with one hero image escalates to vision instead.
 """
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from ..model.elements import Line, Page
 from ..model.table import ExtractedTable
@@ -22,9 +23,39 @@ from .signals import find_skus, has_dimension, is_composition
 
 MAX_WORDS = 8
 MAX_CHARS = 48
-MIN_IMAGES = 3          # a lookbook page has many product photos
-MIN_NAMES = 3
 GAP = 24.0              # horizontal gap (pt) that separates two labels on a row
+
+
+def _min_images(page: Page) -> int:
+    """Adaptive image threshold: dense grids need fewer photos per page."""
+    n_photos = sum(1 for im in page.images if im.kind == "photo")
+    if n_photos >= 8:
+        return 1
+    if n_photos >= 4:
+        return 2
+    return 1
+
+
+def _min_names(page: Page) -> int:
+    n_photos = sum(1 for im in page.images if im.kind == "photo")
+    if n_photos >= 8:
+        return 4
+    if n_photos >= 4:
+        return 3
+    return 2
+
+
+def page_is_lookbook(page: Page, matrix_pages: Set[int]) -> bool:
+    """Per-page lookbook heuristic: not a matrix page and image-bearing."""
+    if page.index in matrix_pages:
+        return False
+    photos = sum(1 for im in page.images if im.kind == "photo")
+    if photos >= 1:
+        return True
+    # text-only lookbook with many short labels
+    if len(page.images) >= 2:
+        return True
+    return False
 
 
 def _cx(line: Line) -> float:
@@ -59,11 +90,7 @@ def _xrange(line: Line):
 
 
 def _merge_wrapped(cands: List[Line]) -> List[dict]:
-    """Merge a wrapped label (one name spilling onto two lines) into one name.
-
-    Uses horizontal overlap, not centre distance, so a short continuation like
-    'Table' under 'Meadow Bedside' still attaches even though its centre shifts.
-    """
+    """Merge a wrapped label (one name spilling onto two lines) into one name."""
     used = [False] * len(cands)
     order = sorted(range(len(cands)), key=lambda i: (cands[i].y, _cx(cands[i])))
     out: List[dict] = []
@@ -106,25 +133,29 @@ def _pick_collection(items: List[dict], page: Page) -> Optional[str]:
 
 
 def extract_labels(lines: List[Line], page: Page) -> Optional[ExtractedTable]:
-    if len(page.images) < MIN_IMAGES:
+    min_img = _min_images(page)
+    if len(page.images) < min_img:
         return None
     cands: List[Line] = []
     for ln in lines:
         for seg in _segment_row(ln):
             if _is_label(seg):
                 cands.append(seg)
-    if len(cands) < MIN_NAMES:
+    min_names = _min_names(page)
+    if len(cands) < min_names:
         return None
 
     items = _merge_wrapped(cands)
     collection = _pick_collection(items, page)
     names = [it for it in items if it["name"] != collection]
-    if len(names) < MIN_NAMES:
+    if len(names) < min_names:
         return None
 
     width = page.width or 1000.0
     n_cols = len({round(it["cx"] / (width / 8)) for it in names})
-    if n_cols < 2:
+    # dense grids may pack many products in one column band
+    photos = sum(1 for im in page.images if im.kind == "photo")
+    if n_cols < 2 and photos < 6:
         return None                            # a single column is prose, not a grid
 
     return ExtractedTable(

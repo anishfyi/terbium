@@ -111,6 +111,61 @@ def score(products, rows):
     return name_hit, sku_hit, mat_hit, img_hit, n
 
 
+def make_dense_pdf(path, n=12):
+    """Dense grid: 12 products on one page (4x3)."""
+    doc = fitz.open()
+    page = doc.new_page(width=820, height=1040)
+    cols, rows = 4, 3
+    for i in range(n):
+        col, row = i % cols, i // cols
+        x0 = 30 + col * 195
+        y0 = 40 + row * 320
+        page.insert_image(fitz.Rect(x0, y0, x0 + 160, y0 + 120), stream=_photo(i))
+        page.insert_text((x0, y0 + 130), f"Dense Item {i + 1}", fontsize=9)
+        page.insert_text((x0, y0 + 148), f"SKU: D-{100 + i}", fontsize=8)
+        page.insert_text((x0, y0 + 162), "Material: Cotton", fontsize=8)
+    doc.save(path)
+    doc.close()
+
+
+def make_sparse_pdf(path):
+    """Sparse photo: 1 product image per page."""
+    doc = fitz.open()
+    page = doc.new_page(width=600, height=800)
+    page.insert_image(fitz.Rect(50, 50, 350, 300), stream=_photo(0))
+    page.insert_text((50, 320), "Solo Rug", fontsize=14)
+    page.insert_text((50, 350), "SKU: SP-001", fontsize=10)
+    page.insert_text((50, 370), "Material: Wool", fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
+def make_mixed_pdf(path):
+    """Mixed layout: dense grid on page 1, sparse on page 2."""
+    doc = fitz.open()
+    page = doc.new_page(width=820, height=1040)
+    for i in range(6):
+        col, row = i % 3, i // 3
+        x0 = 40 + col * 250
+        y0 = 40 + row * 400
+        page.insert_image(fitz.Rect(x0, y0, x0 + 200, y0 + 150), stream=_photo(i))
+        page.insert_text((x0, y0 + 165), f"Mixed {i + 1}", fontsize=10)
+        page.insert_text((x0, y0 + 185), f"SKU: MX-{i + 1}", fontsize=9)
+    page2 = doc.new_page(width=600, height=800)
+    page2.insert_image(fitz.Rect(50, 50, 350, 300), stream=_photo(3))
+    page2.insert_text((50, 320), "Page Two Solo", fontsize=14)
+    page2.insert_text((50, 350), "SKU: MX-SOLO", fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
+LAYOUT_BENCH = {
+    "dense_grid": [("Dense Item 1", "D-100", "Material: Cotton")] * 12,  # scored by count
+    "sparse_photo": [("Solo Rug", "SP-001", "Material: Wool")],
+    "mixed_layout": [("Mixed 1", "MX-1", "Material: Cotton"), ("Page Two Solo", "MX-SOLO", "Material: Wool")],
+}
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="terbium_cat_bench_")
     print(f"{'category':<10} {'products':>8} {'name':>6} {'sku':>6} {'material':>9} {'image':>6}")
@@ -129,6 +184,20 @@ def main():
     nh, sh, mh, ih, n = totals
     print(f"{'TOTAL':<10} {n:>8} {nh:>6} {sh:>6} {mh:>9} {ih:>6}")
     print(f"\nname {nh}/{n}  sku {sh}/{n}  materials {mh}/{n}  image {ih}/{n}")
+
+    print("\n--- layout benchmarks (0.10.0) ---")
+    layout_cases = [
+        ("dense_grid", make_dense_pdf, 12),
+        ("sparse_photo", make_sparse_pdf, 1),
+        ("mixed_layout", make_mixed_pdf, 2),
+    ]
+    for name, maker, expected_min in layout_cases:
+        pdf = os.path.join(tmp, f"{name}.pdf")
+        maker(pdf)
+        rows = terbium.build_catalog(pdf, images_dir=os.path.join(tmp, f"{name}_img"),
+                                     only_photos=False)
+        print(f"{name:<14} rows={len(rows):>3}  (expect >={expected_min})")
+        assert len(rows) >= expected_min, f"{name}: got {len(rows)}, expected >={expected_min}"
 
 
 if __name__ == "__main__":

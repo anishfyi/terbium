@@ -48,6 +48,12 @@ SKU     | Name           | Materials/Ingredients | Image                | Page
 MRP-962 | Aur 152 Peach  | wool                  | Aur_152_Peach.jpeg   | 10
 ```
 
+## Dense and sparse photo pages (0.10.0)
+
+Caption association now scores candidates below, then right, then above each
+image within a radius. Label extraction no longer requires 3+ images per page:
+sparse pages (1 photo) and dense grids (8-12+ products/page) are both handled.
+Swatch-sized thumbnails on dense "ready to ship" sheets are accepted in the main
 ## How it works
 
 For an image-bearing PDF, every product **photo anchors a row**. terbium:

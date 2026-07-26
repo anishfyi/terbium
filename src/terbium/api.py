@@ -1,22 +1,21 @@
 """``terbium.parse`` - the one function most users call.
 
-Flow: adapt -> assemble tables (native, or reconstructed from PDF geometry) ->
-score confidence -> (optionally) send only the hard tables to AI -> build typed
-records -> if anything is still shaky and no key was given, attach and announce
-an escalation message.
+Flow: adapt -> classify -> assemble tables (native, or reconstructed from PDF
+geometry) -> score confidence -> (optionally) send only the hard tables to AI ->
+build typed records -> if anything is still shaky and no key was given, attach and
+announce an escalation message.
 """
 from __future__ import annotations
 
 import sys
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+from .classify import classify, schema_for_type
 from .documents import get_adapter, supported_extensions
-from typing import List, Tuple
-
 from .layout import confidence as _confidence
 from .layout import dehead, grid
 from .layout.columns import split_columns
-from .layout.labels import extract_labels
+from .layout.labels import extract_labels, page_is_lookbook
 from .layout.lines import cluster_lines
 from .layout.tables import detect_tables, is_data_table
 from .model.document import ParsedDocument, Stats
@@ -66,17 +65,12 @@ def _assemble_tables(pages: List[Page], furniture_mode: bool = False) -> Tuple[L
             tables.extend(matrix)
             matrix_pages.add(p.index)
 
-    # A document that is mostly matrices is a catalogue; one that is mostly not
-    # is a lookbook. Only lookbooks get label extraction, so a structured parse
-    # is never polluted by stray names.
-    lookbook = pdf_pages and (len(matrix_pages) / len(pdf_pages)) < 0.2
-
-    # Pass 2: label grids (lookbook only) + image-only detection.
+    # Pass 2: label grids (per-page lookbook) + image-only detection.
     for p in pdf_pages:
         if p.native_tables or p.index in matrix_pages:
             continue
         produced = False
-        if lookbook and p.words:
+        if page_is_lookbook(p, matrix_pages) and p.words:
             full = cluster_lines(p.words)
             if stripper:
                 full = [ln for ln in full if not stripper(ln, p)]
@@ -96,10 +90,14 @@ def parse(
     threshold: float = DEFAULT_THRESHOLD,
     announce: bool = True,
     ocr="auto",
+    doc_type: str = "auto",
 ) -> ParsedDocument:
-    """Parse a PDF/PPTX/XLSX/CSV file into structured, confidence-scored records.
+    """Parse a PDF/PPTX/XLSX/CSV/image file into structured, confidence-scored records.
 
-    ``schema``: "generic" (default) or "furniture", or a Schema instance.
+    ``schema``: "generic" (default) or "furniture"/"product"/"transaction"/"resume",
+    or a Schema instance.
+    ``doc_type``: ``"auto"`` classifies after adapt, or override with
+    catalog/transaction/resume/table/deck/lookbook.
     ``ai``: a ``terbium.AI(...)``, ``True`` (use env keys), or ``None`` (off).
     ``threshold``: confidence below which a record is "ambiguous".
     ``ocr``: ``"auto"`` reads image-only pages with a local Tesseract pass (no
@@ -110,12 +108,31 @@ def parse(
     adapter = get_adapter(path)
     pages = adapter.parse(path)
     source_kind = pages[0].source_kind if pages else "unknown"
-    if source_kind == "pdf" and pages:
+    if source_kind in ("pdf", "image") and pages:
         from .layout import ocr as _ocr
         use_ocr = ocr if isinstance(ocr, bool) else (ocr == "auto" and _ocr.available())
         if use_ocr:
-            _ocr.enrich_pdf_pages(pages, path)
+            if source_kind == "pdf":
+                _ocr.enrich_pdf_pages(pages, path)
+            elif source_kind == "image" and not pages[0].words:
+                pages[0].words = _ocr.ocr_image_words(open(path, "rb").read())
 
+    classified_type = doc_type
+    class_scores = {}
+    if doc_type == "auto":
+        classified_type, class_scores = classify(pages)
+    elif doc_type == "catalog":
+        classified_type = "catalog"
+
+    if schema is None:
+        if doc_type == "auto":
+            schema = schema_for_type(classified_type)
+        elif doc_type in ("catalog", "lookbook", "table"):
+            schema = "product"
+        elif doc_type == "transaction":
+            schema = "transaction"
+        elif doc_type == "resume":
+            schema = "resume"
     schema_obj = get_schema(schema)
     furniture_mode = getattr(schema_obj, "name", None) == "furniture"
     tables, image_only = _assemble_tables(pages, furniture_mode)
@@ -149,6 +166,29 @@ def parse(
                        confidence=t.confidence, reasons=list(t.reasons))
             )
 
+    # transaction/resume page-based extraction when tables yielded little
+    if classified_type == "transaction" and len(records) < 2:
+        from .schema.transaction import TransactionSchema
+        if isinstance(schema_obj, TransactionSchema):
+            page_recs = schema_obj.build_from_pages(pages)
+            if page_recs:
+                records = page_recs
+    if classified_type == "resume" and len(records) < 2:
+        from .schema.resume import ResumeSchema
+        if isinstance(schema_obj, ResumeSchema):
+            page_recs = schema_obj.build_from_pages(pages)
+            if page_recs:
+                records = page_recs
+
+    if classified_type == "transaction" and ai_cfg is not None and records:
+        from .harness.transaction_ai import enrich_transactions
+        from .layout.lines import cluster_lines as _cl
+        page_text = "\n".join(
+            ln.text for p in pages for ln in _cl(p.words) if ln.text.strip()
+        )
+        records = enrich_transactions(records, page_text, ai_cfg)
+        used_ai = True
+
     stats = Stats(
         total=len(records),
         confident=sum(1 for r in records if r.confidence >= threshold),
@@ -162,6 +202,8 @@ def parse(
         records=records,
         stats=stats,
         used_ai=used_ai,
+        doc_type=classified_type,
+        class_scores=class_scores,
     )
 
     notes = []

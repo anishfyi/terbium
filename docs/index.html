@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>terbium - catalogue in, product catalog out</title>
-  <meta name="description" content="terbium turns any vendor catalogue (PDF, PPTX, XLSX, CSV) into commerce-ready product records: name, SKU, materials, price, and the product photo, extracted and named. Deterministic geometry first, confidence-scored, AI only when genuinely stuck." />
+  <title>terbium - documents in, clean rows out</title>
+  <meta name="description" content="terbium turns business documents into clean, confidence-scored rows: vendor catalogues (the flagship, photos included), invoices, bills, receipts, resumes and CVs. Deterministic geometry first, Claude only when genuinely stuck." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,7 +22,7 @@
       --mono:"Space Mono",ui-monospace,monospace;
 
       --maxw:1160px;
-      --pad:clamp(20px,5vw,64px);
+      --pad:clamp(16px,5vw,64px);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
@@ -73,11 +73,12 @@
       display:flex;align-items:center;gap:20px;
       height:64px;
     }
-    .brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+    .brand{display:flex;align-items:baseline;gap:12px;min-width:0;flex:none}
     .wordmark{
       font-family:var(--display);font-weight:800;font-size:23px;
       letter-spacing:-0.04em;line-height:1;color:var(--fg);
       display:inline-flex;align-items:baseline;
+      white-space:nowrap;
     }
     .wordmark .dot{
       width:7px;height:7px;border-radius:50%;background:var(--accent);
@@ -89,11 +90,12 @@
       border-left:1px solid var(--line-2);padding-left:12px;
       white-space:nowrap;
     }
-    .nav-links{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .nav-links{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
     .nav-links a{
       font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;
       text-transform:uppercase;color:var(--fg-dim);
       padding:8px 12px;border-radius:8px;transition:color .15s ease,background .15s ease;
+      white-space:nowrap;
     }
     .nav-links a:hover{color:var(--fg);background:var(--bg-2)}
     /* ---------- sponsors modal (pure CSS :target) ---------- */
@@ -126,13 +128,23 @@
       color:var(--fg);border:1px solid var(--line-2);
     }
     .nav-links a.btn-gh:hover{border-color:var(--fg-faint);background:var(--bg-3)}
-    /* keep the nav on one tidy row on phones: drop the decorative tagline and
-       tighten the links so they sit beside the wordmark instead of overlapping it */
+    /* keep the nav on one tidy row on phones: drop the decorative tagline,
+       tighten the links, and let the link row scroll sideways instead of
+       wrapping or pushing the wordmark off screen */
     @media (max-width:600px){
       .nav{gap:12px;height:58px}
       .microtag{display:none}
-      .nav-links{gap:4px}
-      .nav-links a{font-size:10.5px;letter-spacing:.1em;padding:7px 9px}
+      .nav-links{
+        gap:4px;overflow-x:auto;flex:1 1 auto;
+        scrollbar-width:none;-webkit-overflow-scrolling:touch;
+      }
+      .nav-links::-webkit-scrollbar{display:none}
+      .nav-links a{
+        font-size:10.5px;letter-spacing:.1em;padding:7px 9px;
+        min-height:40px;display:inline-flex;align-items:center;flex:none;
+      }
+      .foot-links a{padding:12px 6px}
+      .fside{align-items:flex-start}
     }
 
     /* ---------- shared bits ---------- */
@@ -253,7 +265,7 @@
     }
     .term-body{padding:22px 20px;overflow-x:auto}
     .term-body pre{
-      font-family:var(--mono);font-size:14px;line-height:1.85;color:var(--fg);
+      font-family:var(--mono);font-size:clamp(11px,3.5vw,14px);line-height:1.85;color:var(--fg);
       white-space:pre;min-width:0;
     }
     .term-body .ok{color:var(--c-xlsx)}
@@ -262,7 +274,7 @@
     .term-body .sep{color:var(--fg-faint)}
     .term-body .tier{color:var(--fg);font-weight:700}
 
-    /* ---------- format cards ---------- */
+    /* ---------- format + doc-type cards ---------- */
     .cards{
       margin-top:44px;display:grid;gap:18px;
       grid-template-columns:repeat(2,1fr);
@@ -280,7 +292,7 @@
       opacity:.10;
     }
     .card .lane-bar{position:absolute;top:0;left:0;height:3px;width:100%;background:var(--lane);opacity:.85}
-    .card .ctop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .card .ctop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .card .fmt{
       font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
       color:var(--lane);
@@ -310,7 +322,7 @@
     }
     .code .cbar .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint)}
     .code .cbody{padding:20px 18px;overflow-x:auto}
-    .code pre{font-family:var(--mono);font-size:13.5px;line-height:1.85;white-space:pre;color:var(--fg)}
+    .code pre{font-family:var(--mono);font-size:clamp(10.5px,3.4vw,13.5px);line-height:1.85;white-space:pre;color:var(--fg)}
     .code .cmt{color:var(--fg-faint)}
     .code .kw{color:var(--c-csv)}
     .code .str{color:var(--c-xlsx)}
@@ -345,6 +357,7 @@
     .foot .fbrand .wordmark{font-size:20px}
     .foot .built{margin-top:12px;color:var(--fg-dim);font-size:14px}
     .foot .built a{color:var(--fg);border-bottom:1px solid var(--line-2)}
+    .fside{display:flex;flex-direction:column;gap:16px;align-items:flex-end}
     .foot-links{display:flex;flex-wrap:wrap;gap:8px 22px}
     .foot-links a{
       font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim);
@@ -353,6 +366,22 @@
     .foot .tile{
       font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);
       border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:2px;
+    }
+
+    /* ---------- small phones ---------- */
+    @media (max-width:480px){
+      .band{padding:44px 0}
+      .hero{padding-top:56px;padding-bottom:36px}
+      .hero .btns{flex-direction:column;align-items:stretch}
+      .hero .btn{width:100%;justify-content:center;min-height:44px}
+      .readout .ro-head{padding:12px 14px;font-size:10px}
+      .ro-cell{padding:18px 14px}
+      .ro-cell .num{font-size:clamp(24px,8.5vw,32px)}
+      .term-body{padding:16px 14px}
+      .code .cbody{padding:16px 14px}
+      .card{padding:22px 18px 24px}
+      .card h3{font-size:21px}
+      .sponsor-card{padding:26px 20px 22px}
     }
   </style>
 </head>
@@ -367,7 +396,7 @@
     <div class="wrap nav">
       <div class="brand">
         <span class="wordmark">terbium<span class="dot"></span></span>
-        <span class="microtag">Catalogue Parser</span>
+        <span class="microtag">Document Parser</span>
       </div>
       <nav class="nav-links">
         <a href="#quickstart">Docs</a>
@@ -382,15 +411,15 @@
   <section class="hero">
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>Algorithmic first - AI only when stuck</span>
-      <h1>Catalogue in. Product catalog out.<br /><span class="muted">It knows when it can't.</span></h1>
+      <h1>Business documents in. Clean rows out.<br /><span class="muted">It knows when it can't.</span></h1>
       <p class="sub">
-        Point terbium at any vendor catalogue, furniture, rugs, lamps, bags, handwash,
-        anything, and get back <b>a table of products</b>: name, SKU, materials or
-        ingredients, and the product photo, extracted and named. Not markdown to re-parse,
-        <b>commerce-ready records</b>. It rebuilds structure from raw geometry, <b>scores its
-        own confidence on every row</b>, and only reaches for an AI model when it is genuinely
-        stuck. No key? It will not fail silently or burn tokens, it tells you what is
-        missing, <b>by name</b>.
+        Point terbium at any business document, a vendor catalogue, an invoice, a receipt,
+        a resume, and get back <b>a table of clean rows</b>. Catalogues are the flagship:
+        name, SKU, materials, and the product photo, extracted and named. Not markdown to
+        re-parse, <b>ready-to-use records</b>. It rebuilds structure from raw geometry,
+        <b>scores its own confidence on every record</b>, and only reaches for a Claude
+        model when it is genuinely stuck. No key? It will not fail silently or burn
+        tokens, it tells you what is missing, <b>by name</b>.
       </p>
       <div class="btns">
         <a href="#quickstart" class="btn btn-primary">Get started <span class="arr">-&gt;</span></a>
@@ -414,11 +443,54 @@
     </div>
   </section>
 
+  <!-- ===================== WHAT IT PARSES (DOCUMENT TYPES) ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>What it parses</span>
+      <h2>Catalogues first. Not catalogues only.</h2>
+      <p class="lead">
+        The engine does not care what a document is called, it cares how the words are
+        laid out. Four document families ship today. <b>Catalogues are the flagship</b>;
+        the rest run on the same geometry, the same confidence scores, the same honesty.
+      </p>
+
+      <div class="cards">
+        <div class="card" style="--lane:var(--c-pdf)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">Catalogues</span><span class="chip">Flagship</span></div>
+          <h3>Catalogues &amp; lookbooks</h3>
+          <p>Photo-anchored records: the product picture ties the name, SKU, and materials to the row. Picture-heavy pages are the headline strength, not the edge case.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-xlsx)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">Transactions</span><span class="chip">Invoices</span></div>
+          <h3>Invoices, bills &amp; receipts</h3>
+          <p>Line items, quantities, unit prices, and totals, read from the layout of the page instead of a regex over flattened text.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-csv)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">HR tech</span><span class="chip">Resumes</span></div>
+          <h3>Resumes &amp; CVs</h3>
+          <p>Sections, experience, and skills, reconstructed from headings and alignment rather than keyword scraping.</p>
+        </div>
+
+        <div class="card" style="--lane:var(--c-pptx)">
+          <div class="lane-bar"></div>
+          <div class="ctop"><span class="fmt">Tables</span><span class="chip">Native structure</span></div>
+          <h3>Price lists &amp; decks</h3>
+          <p>Native tables from spreadsheets and slides, read straight from the file's own structure. Cheap and exact.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== THE CATALOG TABLE ===================== -->
   <section class="band">
     <div class="wrap">
-      <span class="kicker"><span class="pdot"></span>The one thing terbium does</span>
-      <h2>One call. One clean product table.</h2>
+      <span class="kicker"><span class="pdot"></span>The flagship lane</span>
+      <h2>Catalogue in. Product catalog out.</h2>
       <p class="lead">
         Each product photo anchors a row: terbium extracts the image, names it from the label
         beneath it, and mines the nearby text for the SKU and the materials. Then a CSV,
@@ -434,6 +506,41 @@ rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"vendor_c
 terbium.<span class="fn">to_catalog_csv</span>(rows, <span class="str">"catalogue.csv"</span>)
 <span class="cmt"># {"sku": "RG-1001", "name": "Anatolia Kilim",</span>
 <span class="cmt">#  "materials": "wool", "image": "Anatolia_Kilim.jpeg", "page": 12}</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== UNIVERSAL CLI ===================== -->
+  <section class="band">
+    <div class="wrap">
+      <span class="kicker"><span class="pdot"></span>One CLI, every lane</span>
+      <h2>Point it at a file. It tells you what it found.</h2>
+      <p class="lead">
+        The <b>terbium</b> command detects the document type, prints the extracted rows
+        as a terminal table, and writes a spreadsheet or a <b>self-contained HTML
+        report</b> when you ask for one.
+      </p>
+
+      <div class="terminal">
+        <div class="term-bar">
+          <span class="term-dots"><i></i><i></i><i></i></span>
+          <span class="term-title">terbium - universal cli</span>
+        </div>
+        <div class="term-body">
+<pre><span class="sep">$</span> terbium invoice.pdf
+<span class="ok">detected: invoice &middot; 3 line items &middot; confidence 0.94</span>
+
+ description            qty    amount
+ --------------------   ---    ------
+ Studio desk lamp         2    178.00
+ Linen shade              2     49.00
+ Freight                  1     18.50
+
+ <span class="tier">total                        245.50</span>
+
+<span class="sep">--csv out.csv    spreadsheet</span>
+<span class="sep">--html out.html  self-contained report</span></pre>
         </div>
       </div>
     </div>
@@ -465,11 +572,11 @@ terbium.<span class="fn">to_catalog_csv</span>(rows, <span class="str">"catalogu
     </div>
   </section>
 
-  <!-- ===================== FORMAT CARDS ===================== -->
+  <!-- ===================== FORMAT CARDS (INPUT LANE) ===================== -->
   <section class="band">
     <div class="wrap">
-      <span class="kicker"><span class="pdot"></span>Four formats, one model of the page</span>
-      <h2>Every file, reduced to columns, rows, and matrices.</h2>
+      <span class="kicker"><span class="pdot"></span>File formats - the input lane</span>
+      <h2>Every container, reduced to columns, rows, and matrices.</h2>
 
       <div class="cards">
         <div class="card" style="--lane:var(--c-pdf)">
@@ -508,10 +615,10 @@ terbium.<span class="fn">to_catalog_csv</span>(rows, <span class="str">"catalogu
       </p>
       <p class="cards-note">
         <b>The detector is content-agnostic.</b> Any column-aligned table, a pricelist, a spec
-        sheet, a size x finish matrix, reconstructs the same way, whatever the category. The
-        universal <b>product schema</b> then maps the columns to product fields by header meaning:
-        a bag gets capacity, a lamp gets wattage, a rug gets pile, without a hand-written schema per
-        category.
+        sheet, a size x finish matrix, an invoice's line items, reconstructs the same way,
+        whatever the category. Schemas then map the columns to typed fields by header
+        meaning: a bag gets capacity, a lamp gets wattage, an invoice gets a total,
+        without a hand-written schema per category.
       </p>
       <p class="cards-note">
         <b>Not every PDF is a matrix.</b> A lookbook, a grid of photos with a name under each, is
@@ -557,13 +664,14 @@ manifest = terbium.<span class="fn">export_images</span>(<span class="str">"look
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>Quickstart</span>
       <h2>Parse first. Add a key only when it asks.</h2>
-      <p class="lead">Install, point it at a catalogue, and read the table. Wire up an AI key when, and only when, terbium tells you the data lives somewhere the algorithm cannot reach.</p>
+      <p class="lead">Install, point it at a document, and read the table. Wire up an AI key when, and only when, terbium tells you the data lives somewhere the algorithm cannot reach.</p>
 
       <div class="code">
         <div class="cbar"><span class="lbl">shell</span><span class="lbl">pypi</span></div>
         <div class="cbody">
 <pre>pip install terbium-parse
-terbium catalogue.pdf --csv out.csv        <span class="cmt"># the product table + images/, no AI</span></pre>
+terbium catalogue.pdf --csv out.csv                 <span class="cmt"># the product table + images/, no AI</span>
+terbium invoice.pdf --csv rows.csv --html report.html  <span class="cmt"># the universal CLI, any lane</span></pre>
         </div>
       </div>
 
@@ -577,7 +685,8 @@ rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"catalogu
 rows = terbium.<span class="fn">build_catalog</span>(<span class="str">"lookbook.pdf"</span>, images_dir=<span class="str">"images/"</span>,
                              ai=terbium.<span class="fn">AI</span>(anthropic_key=...))       <span class="cmt"># vision fills the blanks</span>
 
-doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</span>, schema=<span class="str">"product"</span>)              <span class="cmt"># raw records API</span></pre>
+doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</span>, schema=<span class="str">"product"</span>)              <span class="cmt"># raw records API</span>
+doc = terbium.<span class="fn">parse</span>(<span class="str">"invoice.pdf"</span>)                                   <span class="cmt"># invoices, receipts, resumes too</span></pre>
         </div>
       </div>
     </div>
@@ -622,7 +731,7 @@ doc = terbium.<span class="fn">parse</span>(<span class="str">"pricelist.xlsx"</
         <span class="wordmark">terbium<span class="dot"></span></span>
         <p class="built">Built by <a href="https://github.com/anishfyi">anishfyi</a></p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-end">
+      <div class="fside">
         <nav class="foot-links">
           <a href="https://github.com/anishfyi/terbium">GitHub</a>
           <a href="https://github.com/anishfyi/trove">Trove</a>
