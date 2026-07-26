@@ -39,6 +39,8 @@ class ParsedDocument:
     stats: Stats = field(default_factory=Stats)
     escalation: Optional[str] = None     # human-readable "bring an AI key" message
     used_ai: bool = False
+    doc_type: str = "unknown"
+    class_scores: dict = field(default_factory=dict)
 
     @property
     def ambiguous_records(self) -> List[Record]:

@@ -43,16 +43,29 @@ def _label_positions(page: Page) -> List[dict]:
 
 
 def _associate(bbox, items: List[dict]) -> Optional[str]:
-    """The label sitting just below an image, horizontally aligned to it."""
+    """Caption for an image: below, then right, then above (proximity-scored)."""
     if not bbox or not items:
         return None
     ix0, iy0, ix1, iy1 = bbox
-    best, best_dy = None, 1e9
+    icx = (ix0 + ix1) / 2
+    best, best_score = None, 1e9
     for it in items:
-        if ix0 - 25 <= it["cx"] <= ix1 + 25 and it["y"] > iy1 - 8:
-            dy = it["y"] - iy1
-            if dy < best_dy and dy < 140:
-                best, best_dy = it, dy
+        cx, cy = it["cx"], it["y"]
+        # below
+        if ix0 - 25 <= cx <= ix1 + 25 and iy1 - 8 <= cy <= iy1 + 140:
+            score = (cy - iy1) + abs(cx - icx) * 0.3
+            if score < best_score:
+                best, best_score = it, score
+        # right
+        elif ix1 - 10 <= cx <= ix1 + 180 and iy0 - 20 <= cy <= iy1 + 20:
+            score = (cx - ix1) + abs(cy - (iy0 + iy1) / 2) * 0.5 + 50
+            if score < best_score:
+                best, best_score = it, score
+        # above
+        elif ix0 - 25 <= cx <= ix1 + 25 and iy0 - 120 <= cy <= iy0 + 8:
+            score = (iy0 - cy) + abs(cx - icx) * 0.3 + 80
+            if score < best_score:
+                best, best_score = it, score
     return best["name"] if best else None
 
 
@@ -108,6 +121,29 @@ def export_images(
                 xref_pages[im.xref].add(p.index)
     repeated = {x for x, pgs in xref_pages.items() if len(pgs) >= max(3, 0.2 * n)}
 
+    # Main pass accepts photos; swatch-sized images included when only_photos (dense sheets).
+    kinds = _kinds if _kinds else ("photo", "swatch") if only_photos else ("photo",)
+    manifest = _export_pass(path, pages, out_dir, only_photos, associate,
+                            dedupe_repeats, min_side, max_aspect, repeated, kinds)
+    if only_photos and not manifest and "swatch" not in kinds:
+        manifest = _export_pass(path, pages, out_dir, only_photos, associate,
+                                dedupe_repeats, min_side=64, max_aspect=max_aspect,
+                                repeated=repeated, kinds=("photo", "swatch"))
+    return manifest
+
+
+def _export_pass(
+    path: str,
+    pages: List[Page],
+    out_dir: str,
+    only_photos: bool,
+    associate: bool,
+    dedupe_repeats: bool,
+    min_side: int,
+    max_aspect: float,
+    repeated: set,
+    kinds: tuple,
+) -> List[dict]:
     manifest: List[dict] = []
     used_names: dict = {}
     doc = fitz.open(path)
@@ -117,11 +153,11 @@ def export_images(
             collection = _labels._pick_collection(items, p) if items else None
             for im in p.images:
                 if only_photos:
-                    if im.kind not in _kinds:
+                    if im.kind not in kinds:
                         continue
                     lo, hi = min(im.width, im.height), max(im.width, im.height)
                     if lo < min_side or (lo and hi / lo > max_aspect):
-                        continue          # a banner strip or sliver, not a product
+                        continue
                 if dedupe_repeats and im.xref in repeated:
                     continue
                 try:
@@ -154,17 +190,6 @@ def export_images(
                 })
     finally:
         doc.close()
-
-    if only_photos and not manifest and "swatch" not in _kinds:
-        # Thumbnail sheets: some catalogues print EVERY product photo below the
-        # photo threshold (a real "ready to ship" sheet embedded 30 product
-        # JPEGs at ~100-160px, so they all classified as swatches and the page
-        # yielded nothing). Small product photos beat none - retry once
-        # accepting swatch-sized images with a relaxed floor.
-        return export_images(path, out_dir, only_photos=only_photos,
-                             associate=associate, dedupe_repeats=dedupe_repeats,
-                             min_side=64, max_aspect=max_aspect,
-                             _kinds=("photo", "swatch"))
     return manifest
 
 

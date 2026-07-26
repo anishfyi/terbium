@@ -4,15 +4,16 @@
 
 # terbium
 
-**Catalogue in. Product catalog out.**
-A god-level algorithmic parser for vendor catalogues: it reconstructs structure
-from geometry, scores its own confidence, and only reaches for an AI model when
+**Business documents in. Clean rows out.**
+A god-level algorithmic parser for business documents, vendor catalogues (the
+flagship), invoices, receipts, resumes: it reconstructs structure from
+geometry, scores its own confidence, and only reaches for an AI model when
 the algorithm cannot be sure.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-000000.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-000000.svg)](pyproject.toml)
 [![formats](https://img.shields.io/badge/PDF_PPTX_XLSX_CSV-000000.svg)](#what-it-parses)
-[![version](https://img.shields.io/badge/version-0.9.6-000000.svg)](pyproject.toml)
+[![version](https://img.shields.io/badge/version-0.9.7-000000.svg)](pyproject.toml)
 
 [Website](https://anishfyi.github.io/terbium) · [Trove](https://github.com/anishfyi/trove)
 
@@ -53,6 +54,26 @@ catalogues come out complete with no key; for a visual brochure that buries the
 name in a title and the material in a paragraph, pass `ai=terbium.AI()` and a
 vision model reads each photo plus the page text to fill the blanks. See
 [docs/catalog.md](docs/catalog.md).
+
+## It reads more than catalogues
+
+Catalogues are the flagship, not the limit. The same engine reads any
+structured business document:
+
+```python
+rows = terbium.parse("invoice.pdf")                  # line items, totals, vendor
+cv = terbium.parse("maria_cv.pdf", schema="resume")  # sections, experience, skills
+```
+
+```bash
+terbium receipt.png --csv out.csv                      # a receipt into rows
+terbium invoice.pdf --csv rows.csv --html report.html  # CSV + self-contained report
+```
+
+Invoices, bills, and receipts come out as line items and totals; resumes and
+CVs as sections, experience, and skills. Detection is automatic; pin it with
+`--type` when a file is ambiguous. [docs/TAXONOMY.md](docs/TAXONOMY.md) maps
+every document type to the file formats it can arrive in.
 
 ## Underneath: structure from geometry
 
@@ -125,6 +146,10 @@ terbium report.xlsx --records --json out.json   # raw parsed records
 ```
 
 ## What it parses
+
+Document types: catalogues and lookbooks, invoices, bills and receipts,
+resumes and CVs, price lists and decks (see
+[docs/TAXONOMY.md](docs/TAXONOMY.md)). File formats:
 
 | Format | Engine | How |
 |---|---|---|
