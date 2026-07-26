@@ -594,3 +594,33 @@ def test_signal_amounts_and_dates():
     assert signals.find_dates("Date: 01/15/2024")
     assert signals.find_emails("jane@example.com")
     assert signals.find_invoice_numbers("Invoice Number: INV-2024-001")
+
+
+def test_provider_prefers_anthropic_when_multiple_keys():
+    from terbium.harness.ai import AI
+    from terbium.harness.providers import provider_name, text_provider
+
+    ai = AI(anthropic_key="a", openai_key="o", kimi_key="k", grok_key="g")
+    assert provider_name(ai) == "anthropic"
+    assert type(text_provider(ai)).__name__ == "AnthropicProvider"
+
+
+def test_provider_pins_openai_kimi_grok():
+    from terbium.harness.ai import AI
+    from terbium.harness.providers import provider_name, text_provider
+
+    assert provider_name(AI(openai_key="o", provider="openai")) == "openai"
+    assert type(text_provider(AI(openai_key="o", provider="openai"))).__name__ == "OpenAIProvider"
+    assert provider_name(AI(kimi_key="k", provider="kimi")) == "kimi"
+    assert type(text_provider(AI(kimi_key="k", provider="kimi"))).__name__ == "KimiProvider"
+    assert provider_name(AI(grok_key="g", provider="grok")) == "grok"
+    assert type(text_provider(AI(grok_key="g", provider="grok"))).__name__ == "GrokProvider"
+
+
+def test_provider_falls_back_openai_then_kimi_then_grok():
+    from terbium.harness.ai import AI
+    from terbium.harness.providers import provider_name
+
+    assert provider_name(AI(openai_key="o", kimi_key="k")) == "openai"
+    assert provider_name(AI(kimi_key="k", grok_key="g")) == "kimi"
+    assert provider_name(AI(grok_key="g")) == "grok"

@@ -344,6 +344,17 @@
     }
     .route .rv .d{width:8px;height:8px;border-radius:50%}
     .route p{margin-top:8px;color:var(--fg-dim);font-size:13.5px;line-height:1.5}
+    .provider-chips{
+      display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;
+    }
+    .provider-chips span{
+      font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+      padding:4px 8px;border-radius:6px;border:1px solid var(--line);
+      color:var(--fg-dim);background:var(--bg-2);
+    }
+    .provider-chips .chip-pref{
+      color:var(--fg);border-color:var(--line-2);background:var(--bg-3);
+    }
     .vision-note{
       margin-top:20px;font-size:14.5px;color:var(--fg-dim);
       display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -697,22 +708,40 @@ doc = terbium.<span class="fn">parse</span>(<span class="str">"invoice.pdf"</spa
     <div class="wrap">
       <span class="kicker"><span class="pdot"></span>When it does call AI, it routes</span>
       <h2>The hard page gets the strong model. Nothing else does.</h2>
-      <p class="lead">terbium matches the difficulty of a page to the cheapest model that can actually solve it, so you never pay Opus prices for a page Haiku could clear.</p>
+      <p class="lead">terbium matches page difficulty to the cheapest tier that can solve it, across <b>Claude</b> (default), <b>GPT</b>, <b>Kimi</b>, <b>Grok</b>, and Gemini. You never pay Opus-class prices for a page Haiku could clear.</p>
 
       <div class="routing">
         <div class="route">
           <div class="rk">Trivial</div>
-          <div class="rv"><span class="d" style="background:var(--c-xlsx)"></span>Haiku</div>
+          <div class="rv"><span class="d" style="background:var(--c-xlsx)"></span>Haiku tier</div>
+          <div class="provider-chips">
+            <span class="chip-pref">Claude Haiku</span>
+            <span>GPT-4o mini</span>
+            <span>Kimi Turbo</span>
+            <span>Grok Mini</span>
+          </div>
           <p>A stray label or an obvious cell. Cleared for pennies.</p>
         </div>
         <div class="route">
           <div class="rk">Moderate</div>
-          <div class="rv"><span class="d" style="background:var(--c-csv)"></span>Sonnet</div>
+          <div class="rv"><span class="d" style="background:var(--c-csv)"></span>Sonnet tier</div>
+          <div class="provider-chips">
+            <span class="chip-pref">Claude Sonnet</span>
+            <span>GPT-4o</span>
+            <span>Kimi K2</span>
+            <span>Grok 3 Mini</span>
+          </div>
           <p>A table whose alignment is plausible but not certain.</p>
         </div>
         <div class="route">
           <div class="rk">Hard</div>
-          <div class="rv"><span class="d" style="background:var(--c-pdf)"></span>Opus</div>
+          <div class="rv"><span class="d" style="background:var(--c-pdf)"></span>Opus tier</div>
+          <div class="provider-chips">
+            <span class="chip-pref">Claude Opus</span>
+            <span>o3-mini</span>
+            <span>Kimi K2</span>
+            <span>Grok 3</span>
+          </div>
           <p>Ambiguous matrices, orphan SKUs, image-only lookbook pages. The real work.</p>
         </div>
       </div>

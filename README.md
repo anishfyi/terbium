@@ -196,7 +196,9 @@ filter, sort, or route on it yourself.
 The AI lane is opt-in and only ever sees the hard pages.
 
 - **Routing.** Difficulty scales the tier: trivial to Haiku, moderate to Sonnet,
-  hard or low-confidence to Opus. Pin a tier with `terbium.AI(force_tier="opus")`.
+  hard or low-confidence to Opus. Routes across **Claude** (default), **GPT**,
+  **Kimi**, **Grok**, and Gemini. Pin a tier with `terbium.AI(force_tier="opus")`
+  or a provider with `terbium.AI(provider="openai")`.
 - **Arrange.** A hard table is handed to the routed model with the page's raw
   text and, for PDFs, a rendered image, and rebuilt into a clean matrix.
 - **Vision.** Material icons (FSC, oiled, varnished) and finish swatches live only
@@ -204,8 +206,9 @@ The AI lane is opt-in and only ever sees the hard pages.
   model. Note: Nano Banana (Gemini image) is for generation, not reading, so it is
   not on the parse path.
 
-Keys come from `terbium.AI(...)` or the `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
-environment variables.
+Keys come from `terbium.AI(...)` or environment variables:
+`ANTHROPIC_API_KEY` (Claude, preferred), `OPENAI_API_KEY`, `MOONSHOT_API_KEY` /
+`KIMI_API_KEY`, `XAI_API_KEY` / `GROK_API_KEY`, `GEMINI_API_KEY`.
 
 ## Schemas
 

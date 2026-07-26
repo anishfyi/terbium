@@ -9,9 +9,12 @@ pip install terbium-parse
 Optional AI lanes (only needed if you want terbium to resolve hard pages):
 
 ```bash
-pip install "terbium-parse[anthropic]"   # Claude
+pip install "terbium-parse[anthropic]"   # Claude (preferred)
+pip install "terbium-parse[openai]"      # GPT
+pip install "terbium-parse[kimi]"        # Kimi
+pip install "terbium-parse[grok]"        # Grok
 pip install "terbium-parse[gemini]"      # Gemini vision
-pip install "terbium-parse[ai]"          # both
+pip install "terbium-parse[ai]"          # all lanes
 ```
 
 ## Parse a file
