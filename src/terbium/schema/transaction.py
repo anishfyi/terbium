@@ -26,9 +26,9 @@ FIELD_SYNONYMS = [
     ("tax_id", ["tax id", "vat", "gst", "ein", "abn"]),
     ("payment_method", ["payment method", "paid by", "payment type"]),
     ("description", ["description", "item", "product", "details", "service"]),
-    ("quantity", ["qty", "quantity", "units"]),
-    ("unit_price", ["unit price", "rate", "price each", "unit cost"]),
-    ("amount", ["amount", "line total", "extended", "total"]),
+    ("quantity", ["qty", "quantity", "units", "q'ty"]),
+    ("unit_price", ["unit price", "unit", "rate", "price each", "unit cost", "price"]),
+    ("amount", ["amount", "line total", "extended", "ext"]),
     ("subtotal", ["subtotal", "sub total", "net amount"]),
     ("tax", ["tax", "vat amount", "gst amount", "sales tax"]),
     ("total", ["total due", "amount due", "grand total", "total", "balance due"]),
@@ -47,12 +47,18 @@ def _map_header(header: str) -> Optional[str]:
     return best
 
 
+_HEADER_FIELDS = frozenset({
+    "number", "date", "due_date", "vendor", "customer", "tax_id",
+    "payment_method", "subtotal", "tax", "total",
+})
+
+
 def _header_from_pages(pages: List[Page]) -> Dict[str, str]:
     fields: Dict[str, str] = {}
     for page in pages:
         for pair in forms.extract_kv_pairs(page):
             canon = _map_header(pair["label"])
-            if canon and canon not in fields:
+            if canon and canon in _HEADER_FIELDS and canon not in fields:
                 fields[canon] = pair["value"]
         text = "\n".join(ln.text for ln in cluster_lines(page.words))
         for inv in signals.find_invoice_numbers(text):
@@ -65,6 +71,18 @@ def _header_from_pages(pages: List[Page]) -> Dict[str, str]:
     return fields
 
 
+def _summary_record(header: Dict[str, str], source_page: int = 0) -> Record:
+    h = dict(header)
+    h["record_type"] = "summary"
+    return Record(
+        sku=header.get("number"),
+        fields=h,
+        source_page=source_page,
+        confidence=0.8,
+        reasons=["transaction summary from form fields"],
+    )
+
+
 @register_schema
 class TransactionSchema(Schema):
     name = "transaction"
@@ -72,12 +90,11 @@ class TransactionSchema(Schema):
     def build_records(self, tables: List[ExtractedTable]) -> List[Record]:
         records: List[Record] = []
         header: Dict[str, str] = {}
-        pages_by_idx: Dict[int, Page] = {}
+        line_items: List[Record] = []
 
         for t in tables:
             headers = t.col_headers
             for row in t.cells:
-                fields = dict(header)
                 line_fields: Dict[str, str] = {}
                 for ci, cell in enumerate(row):
                     if cell is None or cell == "":
@@ -88,35 +105,22 @@ class TransactionSchema(Schema):
                                    "due_date", "vendor", "customer", "tax_id",
                                    "payment_method"):
                         header.setdefault(canon, str(cell))
-                        fields[canon] = str(cell)
                     elif canon:
                         line_fields[canon] = str(cell)
                     else:
                         line_fields[hdr] = str(cell)
-                fields.update(line_fields)
-                fields["record_type"] = "line_item" if line_fields.get("description") or line_fields.get("amount") else "header"
-                if fields.get("record_type") == "line_item" or len(line_fields) >= 2:
-                    records.append(
-                        Record(sku=fields.get("number"), fields=fields,
+                if line_fields.get("description") or line_fields.get("amount"):
+                    fields = dict(line_fields)
+                    fields["record_type"] = "line_item"
+                    line_items.append(
+                        Record(sku=header.get("number"), fields=fields,
                                source_page=t.source_page, confidence=t.confidence,
                                reasons=list(t.reasons))
                     )
 
-        if not records:
-            # fall back to key-value pairs only
-            for t in tables:
-                page = pages_by_idx.get(t.source_page)
-                if page:
-                    hdr = _header_from_pages([page])
-                    for k, v in hdr.items():
-                        rec = dict(hdr)
-                        rec["record_type"] = "header"
-                        records.append(
-                            Record(sku=hdr.get("number"), fields=rec,
-                                   source_page=t.source_page, confidence=0.7,
-                                   reasons=["key-value header fields"])
-                        )
-                        break
+        for rec in line_items:
+            rec.fields.update({k: v for k, v in header.items() if k not in rec.fields})
+            records.append(rec)
         return records
 
     def build_from_pages(self, pages: List[Page]) -> List[Record]:
@@ -124,12 +128,7 @@ class TransactionSchema(Schema):
         header = _header_from_pages(pages)
         records: List[Record] = []
         if header:
-            h = dict(header)
-            h["record_type"] = "header"
-            records.append(
-                Record(sku=header.get("number"), fields=h, source_page=0,
-                       confidence=0.75, reasons=["transaction header from key-value pairs"])
-            )
+            records.append(_summary_record(header))
         for page in pages:
             for pair in forms.extract_kv_pairs(page):
                 canon = _map_header(pair["label"])
