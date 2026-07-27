@@ -617,6 +617,79 @@ def test_provider_pins_openai_kimi_grok():
     assert type(text_provider(AI(grok_key="g", provider="grok"))).__name__ == "GrokProvider"
 
 
+def _make_task_invoice_pdf(path):
+    """Invoice with Description/Qty/Unit/Amount table (regression fixture)."""
+    import fitz
+    doc = fitz.open()
+    pg = doc.new_page(width=612, height=792)
+    pg.insert_text((50, 50), "INVOICE", fontsize=18)
+    pg.insert_text((50, 90), "Invoice No: INV-2041", fontsize=11)
+    pg.insert_text((50, 110), "Date: 2026-07-20", fontsize=11)
+    pg.insert_text((50, 130), "Bill To: Acme Corp", fontsize=11)
+    pg.insert_text((50, 180), "Description", fontsize=10)
+    pg.insert_text((200, 180), "Qty", fontsize=10)
+    pg.insert_text((280, 180), "Unit", fontsize=10)
+    pg.insert_text((360, 180), "Amount", fontsize=10)
+    pg.insert_text((50, 200), "Widget A", fontsize=10)
+    pg.insert_text((200, 200), "10", fontsize=10)
+    pg.insert_text((280, 200), "80.00", fontsize=10)
+    pg.insert_text((360, 200), "800.00", fontsize=10)
+    pg.insert_text((50, 250), "Total: 850.00", fontsize=11)
+    doc.save(path)
+    doc.close()
+
+
+def test_cli_auto_routes_invoice_to_transaction(tmp_path, capsys):
+    from terbium.cli import main
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_task_invoice_pdf(path)
+    rc = main([path, "--csv", "-", "--limit", "0"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "transaction" in out
+    assert "line_item" in out or "summary" in out
+    assert "products" not in out.lower()
+
+
+def test_transaction_summary_record(tmp_path):
+    import terbium
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_task_invoice_pdf(path)
+    doc = terbium.parse(path, doc_type="transaction", announce=False)
+    summaries = [r for r in doc.records if r.fields.get("record_type") == "summary"]
+    assert summaries, "expected a summary record"
+    s = summaries[0].fields
+    assert s.get("number") == "INV-2041"
+    assert s.get("total") == "850.00"
+    line_items = [r for r in doc.records if r.fields.get("record_type") == "line_item"]
+    assert line_items
+    item = line_items[0].fields
+    assert item.get("description") == "Widget A"
+    assert item.get("quantity") == "10"
+    assert item.get("unit_price") == "80.00"
+    assert item.get("amount") == "800.00"
+
+
+def test_resume_candidate_has_email(tmp_path):
+    import terbium
+    from terbium.cli import main
+
+    path = str(tmp_path / "resume.pdf")
+    _make_resume_pdf(path)
+    doc = terbium.parse(path, doc_type="resume", announce=False)
+    headers = [r for r in doc.records if r.fields.get("section") == "header"]
+    assert headers
+    assert headers[0].fields.get("email") == "jane@example.com"
+    sections = {r.fields.get("section") for r in doc.records}
+    assert "experience" in sections
+    assert "education" in sections
+    assert "skills" in sections
+    rc = main([path, "--limit", "0"])
+    assert rc == 0
+
+
 def test_provider_falls_back_openai_then_kimi_then_grok():
     from terbium.harness.ai import AI
     from terbium.harness.providers import provider_name

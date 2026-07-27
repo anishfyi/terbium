@@ -167,12 +167,25 @@ def parse(
             )
 
     # transaction/resume page-based extraction when tables yielded little
-    if classified_type == "transaction" and len(records) < 2:
-        from .schema.transaction import TransactionSchema
+    if classified_type == "transaction":
+        from .schema.transaction import TransactionSchema, _header_from_pages, _summary_record, _map_header
+        from .layout import forms as _forms
         if isinstance(schema_obj, TransactionSchema):
-            page_recs = schema_obj.build_from_pages(pages)
-            if page_recs:
-                records = page_recs
+            header = _header_from_pages(pages)
+            for page in pages:
+                for k, v in _forms.extract_fields(page, _map_header).items():
+                    header.setdefault(k, v)
+            has_summary = any(r.fields.get("record_type") == "summary" for r in records)
+            if header and not has_summary:
+                records.insert(0, _summary_record(header))
+            for r in records:
+                if r.fields.get("record_type") == "line_item":
+                    for k, v in header.items():
+                        r.fields.setdefault(k, v)
+            if len(records) < 2:
+                page_recs = schema_obj.build_from_pages(pages)
+                if page_recs:
+                    records = page_recs
     if classified_type == "resume" and len(records) < 2:
         from .schema.resume import ResumeSchema
         if isinstance(schema_obj, ResumeSchema):

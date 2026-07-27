@@ -1,10 +1,12 @@
 """``terbium <file>`` - parse documents from the command line.
 
 Auto-classifies the input, prints a terminal table by default, and can write CSV
-or HTML. Catalog behaviour is unchanged for catalog inputs. No AI unless --ai.
+or HTML. Catalog behaviour is unchanged for catalog inputs. Invoices and resumes
+detected under ``--type auto`` route to the records view. No AI unless --ai.
 
     terbium catalogue.pdf                 # print the table (images -> catalogue_images/)
     terbium catalogue.pdf --csv out.csv   # + write the CSV
+    terbium invoice.pdf                   # auto-detects transaction records
     terbium invoice.pdf --type transaction
     terbium resume.pdf --type resume --html out.html
 """
@@ -70,11 +72,20 @@ def main(argv=None) -> int:
     schema = args.schema
 
     # ---- parsed records view (explicit --records or non-catalog types) ----
+    _catalog_types = ("catalog", "lookbook", "table", "deck", "unknown")
     use_catalog = (
         not args.records
-        and doc_type in ("auto", "catalog", "lookbook")
+        and doc_type in ("catalog", "lookbook")
         and (schema is None or schema in ("product", None))
     )
+    if doc_type == "auto" and not args.records and (schema is None or schema in ("product", None)):
+        from .documents import get_adapter
+        from .classify import classify as classify_doc
+
+        pages = get_adapter(args.file).parse(args.file)
+        detected, _ = classify_doc(pages)
+        doc_type = detected
+        use_catalog = detected in _catalog_types
 
     if not use_catalog:
         if schema is None:
