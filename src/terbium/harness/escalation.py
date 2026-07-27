@@ -12,6 +12,11 @@ from ..model.record import Record
 from ..model.table import ExtractedTable
 from . import router
 
+_KEY_HINT = (
+    "ANTHROPIC_API_KEY (Claude, preferred), OPENAI_API_KEY, MOONSHOT_API_KEY (Kimi), "
+    "XAI_API_KEY (Grok), or GEMINI_API_KEY"
+)
+
 
 def build_message(records: List[Record], hard_tables: List[ExtractedTable], threshold: float) -> str:
     total = len(records)
@@ -34,6 +39,6 @@ def build_message(records: List[Record], hard_tables: List[ExtractedTable], thre
         f"terbium: {confident}/{total} records parsed confidently.\n"
         f"{len(hard_tables)} table(s) on page(s) {page_str} are ambiguous "
         f"({reason_str}).\n"
-        f"-> set ANTHROPIC_API_KEY or pass ai=terbium.AI(...)   "
+        f"-> set {_KEY_HINT} or pass ai=terbium.AI(...)   "
         f"recommended tier: {tier.capitalize()}"
     )

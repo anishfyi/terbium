@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from .api import parse, supported_extensions, DEFAULT_THRESHOLD
 from .catalog import build_catalog, to_catalog_csv
+from .classify import classify
 from .extract import export_images
 from .export_feed import to_shopify_csv, to_pim_json
 from .harness import AI
@@ -19,6 +20,7 @@ from .harness.vision import read_page as read_vision
 from .model.document import ParsedDocument, Stats
 from .model.record import Record
 from .model.table import ExtractedTable
+from .render import records_to_csv, render_html, render_terminal_table
 
 __version__ = "0.10.0"
 
@@ -26,10 +28,14 @@ __all__ = [
     "parse",
     "build_catalog",
     "to_catalog_csv",
+    "classify",
     "export_images",
     "enrich_products",
     "to_shopify_csv",
     "to_pim_json",
+    "records_to_csv",
+    "render_html",
+    "render_terminal_table",
     "AI",
     "read_vision",
     "supported_extensions",

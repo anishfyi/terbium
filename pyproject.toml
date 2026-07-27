@@ -25,10 +25,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# The AI lane is opt-in. terbium runs fully without either of these.
+# The AI lane is opt-in. terbium runs fully without any of these.
 anthropic = ["anthropic>=0.34"]
+openai = ["openai>=1.40"]
+kimi = ["openai>=1.40"]
+grok = ["openai>=1.40"]
 gemini = ["google-generativeai>=0.7"]
-ai = ["anthropic>=0.34", "google-generativeai>=0.7"]
+ai = [
+    "anthropic>=0.34",
+    "openai>=1.40",
+    "google-generativeai>=0.7",
+]
 dev = ["pytest>=7"]
 
 [project.urls]

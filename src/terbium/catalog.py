@@ -20,6 +20,7 @@ from typing import List, Optional
 from .documents.pdf import PdfAdapter
 from .extract import export_images
 from .layout import signals
+from .layout.labels import _segment_row
 from .layout.lines import cluster_lines
 from .normalize import MATERIAL_FAMILIES
 from .schema.product import _looks_like_sku
@@ -37,31 +38,37 @@ def _cx(w) -> float:
 
 
 def _caption_lines(page, bbox) -> List[str]:
-    """Lines near an image: below, then right, then above (proximity-scored)."""
+    """Lines near an image: below, then right, then above (proximity-scored).
+
+    Each baseline is split at wide horizontal gaps first so a two-column grid does
+    not bleed one product's caption into its neighbour."""
     if not bbox or not page:
         return []
     ix0, iy0, ix1, iy1 = bbox
     icx = (ix0 + ix1) / 2
     radius = 200
+    x_lo, x_hi = ix0 - 25, ix1 + 25
     candidates: List[tuple] = []
     for ln in cluster_lines(page.words):
-        t = ln.text.strip()
-        if not t:
-            continue
-        cx = sum(w.cx for w in ln.words) / len(ln.words)
-        cy = ln.y
-        # below
-        if ix0 - 25 <= cx <= ix1 + 25 and iy1 - 6 <= cy <= iy1 + radius:
-            score = abs(cy - iy1) + abs(cx - icx) * 0.3
-            candidates.append((score, t, "below"))
-        # right
-        elif ix1 - 10 <= cx <= ix1 + radius and iy0 - 20 <= cy <= iy1 + 20:
-            score = abs(cx - ix1) + abs(cy - (iy0 + iy1) / 2) * 0.5 + 50
-            candidates.append((score, t, "right"))
-        # above
-        elif ix0 - 25 <= cx <= ix1 + 25 and iy0 - radius <= cy <= iy0 + 6:
-            score = abs(iy0 - cy) + abs(cx - icx) * 0.3 + 80
-            candidates.append((score, t, "above"))
+        for seg in _segment_row(ln):
+            t = seg.text.strip()
+            if not t:
+                continue
+            cx = sum(w.cx for w in seg.words) / len(seg.words)
+            cy = seg.y
+            # below (primary): stay in this product's column
+            if x_lo <= cx <= x_hi and iy1 - 6 <= cy <= iy1 + radius:
+                score = abs(cy - iy1) + abs(cx - icx) * 0.3
+                candidates.append((score, t, "below"))
+            # right: only beside the image, not a neighbour's caption row
+            elif ix1 - 10 <= cx <= ix1 + radius and iy0 - 20 <= cy <= iy1 + 20:
+                if cx > x_hi:
+                    score = abs(cx - ix1) + abs(cy - (iy0 + iy1) / 2) * 0.5 + 50
+                    candidates.append((score, t, "right"))
+            # above: wrapped label, same column only
+            elif x_lo <= cx <= x_hi and iy0 - radius <= cy <= iy0 + 6:
+                score = abs(iy0 - cy) + abs(cx - icx) * 0.3 + 80
+                candidates.append((score, t, "above"))
     candidates.sort(key=lambda x: x[0])
     return [c[1] for c in candidates]
 
@@ -74,10 +81,18 @@ _SKU_TOK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/\-]{2,19}$")  # legacy helper
 _DIM_TOK = re.compile(r"^\d+(?:\.\d+)?(?:cm|mm|m|ml|l|kg|g|in|\")$", re.IGNORECASE)
 _ORD_TOK = re.compile(r"^\d+(?:st|nd|rd|th)$", re.IGNORECASE)          # 1st, 21st
 _RATE_TOK = re.compile(r"^\d+(?:\.\d+)?/[A-Za-z]{1,6}\.?$")            # 2.25/SQFT, 40/PC
+_SKU_LABEL = re.compile(r"^\s*SKU\s*:\s*(.+)$", re.IGNORECASE)
 
 
 def _find_sku(lines: List[str]) -> Optional[str]:
     """A real product code using the generalized SKU pattern set."""
+    for text in lines:
+        m = _SKU_LABEL.match(text.strip())
+        if m:
+            for tok in m.group(1).split():
+                t = tok.strip(".,;:()[]")
+                if signals.looks_like_sku_token(t):
+                    return t
     for text in lines:
         for tok in text.split():
             t = tok.strip(".,;:()[]")

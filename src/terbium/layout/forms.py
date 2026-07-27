@@ -120,3 +120,17 @@ def pairs_to_fields(pairs: List[Dict[str, str]]) -> Dict[str, str]:
             key = f"{key}_{i}"
         out[key] = p["value"]
     return out
+
+
+def extract_fields(page: Page, map_header=None) -> Dict[str, str]:
+    """Extract canonical header fields from a page's label:value pairs."""
+    fields: Dict[str, str] = {}
+    for pair in extract_kv_pairs(page):
+        if map_header is None:
+            key = pair["label"].lower().replace(" ", "_")
+            fields.setdefault(key, pair["value"])
+            continue
+        canon = map_header(pair["label"])
+        if canon and canon not in fields:
+            fields[canon] = pair["value"]
+    return fields
