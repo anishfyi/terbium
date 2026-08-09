@@ -3,8 +3,133 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>terbium - documents in, clean rows out</title>
-  <meta name="description" content="terbium turns business documents into clean, confidence-scored rows: vendor catalogues (the flagship, photos included), invoices, bills, receipts, resumes and CVs. Deterministic geometry first, Claude only when genuinely stuck." />
+  <title>terbium: business documents in, clean rows out</title>
+<!-- seo:anishfyi -->
+<meta name="description" content="terbium parses PDF, PPTX, XLSX and CSV by rebuilding table structure from the geometry of every word, scores each row 0 to 1, and calls a vision model only for the pages the algorithm cannot resolve.">
+<meta name="author" content="Anish Kr Singh">
+<link rel="canonical" href="https://anishfyi.com/terbium/">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="anishfyi">
+<meta property="og:locale" content="en_IN">
+<meta property="og:url" content="https://anishfyi.com/terbium/">
+<meta property="og:title" content="terbium: business documents in, clean rows out">
+<meta property="og:description" content="Vendor catalogues, invoices, receipts and resumes into clean confidence-scored rows. Deterministic geometry first, a model only for the residue. pip install terbium-parse.">
+<meta property="og:image" content="https://anishfyi.com/terbium/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="terbium, business documents in and clean rows out">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="terbium: business documents in, clean rows out">
+<meta name="twitter:description" content="Vendor catalogues, invoices, receipts and resumes into clean confidence-scored rows. Deterministic geometry first, a model only for the residue. pip install terbium-parse.">
+<meta name="twitter:image" content="https://anishfyi.com/terbium/og.png">
+<meta name="twitter:image:alt" content="terbium, business documents in and clean rows out">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://anishfyi.com/terbium/#webpage",
+      "url": "https://anishfyi.com/terbium/",
+      "name": "terbium: business documents in, clean rows out",
+      "description": "terbium parses PDF, PPTX, XLSX and CSV by rebuilding table structure from the geometry of every word, scores each row 0 to 1, and calls a vision model only for the pages the algorithm cannot resolve.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://anishfyi.com/#website"
+      },
+      "about": {
+        "@id": "https://anishfyi.com/terbium/#software"
+      },
+      "primaryImageOfPage": "https://anishfyi.com/terbium/og.png",
+      "author": {
+        "@id": "https://anishfyi.com/#person"
+      },
+      "breadcrumb": {
+        "@id": "https://anishfyi.com/terbium/#breadcrumb"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://anishfyi.com/terbium/#software",
+      "name": "terbium",
+      "url": "https://anishfyi.com/terbium/",
+      "description": "terbium parses PDF, PPTX, XLSX and CSV by rebuilding table structure from the geometry of every word, scores each row 0 to 1, and calls a vision model only for the pages the algorithm cannot resolve.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "macOS, Linux, Windows",
+      "author": {
+        "@id": "https://anishfyi.com/#person"
+      },
+      "publisher": {
+        "@id": "https://anishfyi.com/#person"
+      },
+      "image": "https://anishfyi.com/terbium/og.png",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Parses PDF, PPTX, XLSX and CSV. Vendor catalogues are the flagship; invoices, bills, receipts and resumes run through the same engine.",
+        "Table structure is rebuilt from the geometry of every word on the page rather than from a fixed template.",
+        "Every record is scored 0 to 1 on grid regularity, header presence and fill. Only pages below threshold are escalated to a model tier.",
+        "For catalogues each product photo anchors a row: the image is extracted, named from the label beneath it, and nearby text is mined for the SKU and materials.",
+        "Requires Python 3.9 or newer. MIT licensed. Current version 0.10.0.",
+        "Sponsored by NodeMaven, a disclosed commercial relationship."
+      ],
+      "softwareVersion": "0.10.0",
+      "license": "https://opensource.org/licenses/MIT",
+      "programmingLanguage": "Python",
+      "codeRepository": "https://github.com/anishfyi/terbium",
+      "sameAs": [
+        "https://github.com/anishfyi/terbium"
+      ]
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://anishfyi.com/terbium/#source",
+      "name": "terbium",
+      "codeRepository": "https://github.com/anishfyi/terbium",
+      "programmingLanguage": "Python",
+      "author": {
+        "@id": "https://anishfyi.com/#person"
+      },
+      "about": {
+        "@id": "https://anishfyi.com/terbium/#software"
+      },
+      "description": "An algorithmic parser for business documents that scores its own confidence and escalates only the residue to a model."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://anishfyi.com/terbium/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "anishfyi",
+          "item": "https://anishfyi.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Projects",
+          "item": "https://anishfyi.com/projects/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "terbium",
+          "item": "https://anishfyi.com/terbium/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+<!-- /seo:anishfyi -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
