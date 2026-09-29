@@ -7,7 +7,17 @@
 <link rel="canonical" href="https://velofy.co/terbium/">
 <meta name="robots" content="noindex">
 <meta http-equiv="refresh" content="0; url=https://velofy.co/terbium/">
-<script>location.replace('https://velofy.co/terbium/' + location.hash)</script>
+<script>
+(function () {
+  // Old Pages addresses such as /terbium/quickstart.md or /terbium/catalog.html/ land here.
+  // Send known pages to their new address; anything else goes to the docs home.
+  var pages = ['quickstart', 'formats', 'schemas', 'confidence', 'documents', 'images', 'catalog', 'ai-and-routing', 'taxonomy'];
+  var m = location.pathname.toLowerCase().match(/^\/terbium\/([a-z-]+?)(?:\.md|\.html)?\/?$/);
+  var dest = 'https://velofy.co/terbium/';
+  if (m && pages.indexOf(m[1]) !== -1) dest += m[1] + '/';
+  location.replace(dest + location.hash);
+})();
+</script>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#faf9f5;color:#141413;font:16px/1.6 system-ui,sans-serif;padding:24px}a{color:#a8492a}@media(prefers-color-scheme:dark){body{background:#262624;color:#faf9f5}a{color:#d97757}}</style>
 </head>
 <body><p>These docs moved to <a href="https://velofy.co/terbium/">velofy.co/terbium/</a>.</p></body>
