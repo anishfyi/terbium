@@ -50,10 +50,12 @@ pip install terbium-parse
 
 The PyPI name is `terbium-parse`; you `import terbium`, and the command is `terbium`. (The PyPI project named `terbium` is unrelated.)
 
-PyPI currently serves 0.9.7. This README describes 0.10.0 on `main`, which adds invoices, receipts, resumes, image files, HTML output and more AI providers. Until 0.10.0 is released, install it from source:
+terbium 0.10.0 is released on GitHub, but PyPI still serves 0.9.7 until the 0.10.0 upload is made, so `pip install terbium-parse` gives you 0.9.7 today. This README describes 0.10.0, which adds invoices, receipts, resumes, image files, HTML output and more AI providers. To get 0.10.0 now, install the wheel attached to the GitHub release, or the tag:
 
 ```bash
-pip install "git+https://github.com/velofy/terbium.git"
+pip install "https://github.com/velofy/terbium/releases/download/v0.10.0/terbium_parse-0.10.0-py3-none-any.whl"
+# or
+pip install "git+https://github.com/velofy/terbium.git@v0.10.0"
 ```
 
 Optional AI lanes: `pip install "terbium-parse[anthropic]"` (or `openai`, `kimi`, `grok`, `gemini`, or `ai` for all). OCR of images and image-only pages needs a local `tesseract` binary. Details: [Installation](https://velofy.co/terbium/installation/).

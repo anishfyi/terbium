@@ -283,7 +283,8 @@ def _pptx_rows(path: str, images_dir: str, ocr: bool = False, **kw) -> List[dict
     return rows
 
 
-def catalog_escalation(rows: List[dict], ocr_ran: bool = False) -> Optional[str]:
+def catalog_escalation(rows: List[dict], ocr_ran: bool = False,
+                       ocr_available: Optional[bool] = None) -> Optional[str]:
     """The honest "there is more to read" message - and only when true.
 
     Escalates for two genuine reasons: pages with an image but no readable text
@@ -294,6 +295,8 @@ def catalog_escalation(rows: List[dict], ocr_ran: bool = False) -> Optional[str]
 
     ``ocr_ran`` tunes the advice: if a local OCR pass already ran and text is
     still missing, the next lever is the vision lane, not "try OCR".
+    ``ocr_available`` (probed when None) keeps the advice honest: without a local
+    Tesseract, ``ocr=True`` does nothing, so the message says to install it first.
     """
     total = len(rows)
     if not total:
@@ -323,8 +326,16 @@ def catalog_escalation(rows: List[dict], ocr_ran: bool = False) -> Optional[str]
             lines.append("-> a local OCR pass already ran and still found no text there; "
                          "read them with the vision lane: ai=terbium.AI(...) with a key.")
         else:
-            lines.append("-> run with ocr=True (local, no key) to read baked-in text, "
-                         "or ai=terbium.AI(...) for the vision lane.")
+            if ocr_available is None:
+                from .layout import ocr as _ocr
+                ocr_available = _ocr.available()
+            if ocr_available:
+                lines.append("-> run with ocr=True (local, no key) to read baked-in text, "
+                             "or ai=terbium.AI(...) for the vision lane.")
+            else:
+                lines.append("-> Tesseract is not installed; install it to read baked-in text "
+                             "locally (no key; used by default, or force with ocr=True), "
+                             "or pass ai=terbium.AI(...) for the vision lane.")
     else:
         lines.append("-> some rows are missing a SKU/materials their neighbours have; "
                      "pass ai=terbium.AI(...) to fill the gaps.")
