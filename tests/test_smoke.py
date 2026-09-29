@@ -697,3 +697,151 @@ def test_provider_falls_back_openai_then_kimi_then_grok():
     assert provider_name(AI(openai_key="o", kimi_key="k")) == "openai"
     assert provider_name(AI(kimi_key="k", grok_key="g")) == "kimi"
     assert provider_name(AI(grok_key="g")) == "grok"
+
+
+# ---- 0.10.0 release fixes ----------------------------------------------------
+
+
+class _StubProvider:
+    """Stands in for a model provider; records calls, never touches a network."""
+
+    def __init__(self, reply):
+        self.reply = reply
+        self.calls = 0
+
+    def complete(self, prompt, system, tier, image_png=None):
+        self.calls += 1
+        if isinstance(self.reply, Exception):
+            raise self.reply
+        return self.reply
+
+
+def _stub_ai(monkeypatch, reply):
+    from terbium.harness import transaction_ai
+    from terbium.harness.ai import AI
+
+    stub = _StubProvider(reply)
+    monkeypatch.setattr(transaction_ai, "text_provider", lambda ai: stub)
+    return stub, AI(anthropic_key="test-key-not-used")
+
+
+def test_transaction_ai_fills_summary_records(monkeypatch):
+    from terbium.harness.transaction_ai import enrich_transactions
+    from terbium.model.record import Record
+
+    stub, ai = _stub_ai(monkeypatch, '{"number": "INV-9", "vendor": "Acme", "total": "12.00", '
+                                     '"line_items": [{"description": "Bolt", "amount": "12.00"}]}')
+    summary = Record(sku=None, fields={"record_type": "summary", "number": "INV-9"},
+                     source_page=0, confidence=0.8)
+    records, called = enrich_transactions([summary], "INVOICE INV-9 Acme Bolt 12.00", ai)
+    assert called and stub.calls == 1
+    assert records[0].fields["total"] == "12.00"
+    assert records[0].fields["vendor"] == "Acme"
+    assert records[0].fields["record_type"] == "summary"
+    items = [r for r in records if r.fields.get("record_type") == "line_item"]
+    assert [r.fields["description"] for r in items] == ["Bolt"]
+
+
+def test_transaction_ai_skips_when_summary_complete(monkeypatch):
+    from terbium.harness.transaction_ai import enrich_transactions
+    from terbium.model.record import Record
+
+    stub, ai = _stub_ai(monkeypatch, "{}")
+    summary = Record(sku=None, fields={"record_type": "summary", "total": "5.00"},
+                     source_page=0, confidence=0.8)
+    records, called = enrich_transactions([summary], "text", ai)
+    assert not called and stub.calls == 0
+    assert records == [summary]
+
+
+def test_transaction_ai_failed_call_is_not_reported(monkeypatch):
+    from terbium.harness.transaction_ai import enrich_transactions
+    from terbium.model.record import Record
+
+    stub, ai = _stub_ai(monkeypatch, RuntimeError("network down"))
+    item = Record(sku=None, fields={"record_type": "line_item", "amount": "1"},
+                  source_page=0, confidence=0.8)
+    records, called = enrich_transactions([item], "text", ai)
+    assert stub.calls == 1 and not called
+    assert records == [item]
+
+
+def test_parse_used_ai_only_when_model_called(tmp_path, monkeypatch):
+    import terbium
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_task_invoice_pdf(path)
+    # Summary already has a total: the AI step must not call the model or claim it did.
+    stub, ai = _stub_ai(monkeypatch, "{}")
+    doc = terbium.parse(path, doc_type="transaction", ai=ai, announce=False)
+    assert stub.calls == 0
+    assert doc.used_ai is False
+
+
+def test_parse_transaction_ai_runs_on_summary(tmp_path, monkeypatch):
+    import terbium
+    from terbium.schema import transaction as tx
+
+    path = str(tmp_path / "invoice.pdf")
+    _make_task_invoice_pdf(path)
+    # Hide the total from the parser so the summary is incomplete and AI must fill it.
+    real = tx._header_from_pages
+    monkeypatch.setattr(tx, "_header_from_pages",
+                        lambda pages: {k: v for k, v in real(pages).items() if k != "total"})
+    import terbium.layout.forms as forms
+    real_fields = forms.extract_fields
+    monkeypatch.setattr(forms, "extract_fields",
+                        lambda page, m: {k: v for k, v in real_fields(page, m).items() if k != "total"})
+    stub, ai = _stub_ai(monkeypatch, '{"total": "850.00", "vendor": "Stub Vendor"}')
+    doc = terbium.parse(path, doc_type="transaction", ai=ai, announce=False)
+    assert stub.calls == 1
+    assert doc.used_ai is True
+    summaries = [r for r in doc.records if r.fields.get("record_type") == "summary"]
+    assert summaries and summaries[0].fields.get("total") == "850.00"
+    assert summaries[0].fields.get("vendor") == "Stub Vendor"
+
+
+def test_terminal_table_truncates_headers_to_column_width():
+    from terbium.render.terminal import render_terminal_table
+
+    headers = ["sku", "confidence", "description_of_the_item", "amount"]
+    rows = [["A1", "0.95", "x" * 60, "10.00"], ["B2", "0.80", "short", "5.00"]]
+    out = render_terminal_table(headers, rows, term_width=40)
+    lines = out.splitlines()
+    assert len({len(ln) for ln in lines}) == 1, out   # every line the same width
+    assert all(len(ln) <= 40 for ln in lines), out
+
+
+def test_catalog_escalation_without_tesseract_says_install():
+    from terbium.catalog import catalog_escalation
+
+    rows = [{"sku": None, "name": None, "materials": None, "image": f"p{i}.jpeg",
+             "page": i, "_context": ""} for i in range(1, 6)]
+    msg = catalog_escalation(rows, ocr_available=False)
+    assert "Tesseract is not installed" in msg
+    assert "-> run with ocr=True" not in msg
+    assert "ai=terbium.AI(...)" in msg
+    msg_ok = catalog_escalation(rows, ocr_available=True)
+    assert "-> run with ocr=True" in msg_ok
+
+
+def test_openai_o_series_uses_max_completion_tokens():
+    from terbium.harness.providers.openai_provider import OpenAIProvider
+
+    sent = []
+
+    class _Resp:
+        choices = [type("C", (), {"message": type("M", (), {"content": "ok"})()})()]
+
+    class _Completions:
+        def create(self, **kw):
+            sent.append(kw)
+            return _Resp()
+
+    p = OpenAIProvider("test-key-not-used")
+    p._client = type("Client", (), {"chat": type("Chat", (), {"completions": _Completions()})()})()
+    p.complete("hi", "sys", "opus")
+    p.complete("hi", "sys", "sonnet")
+    assert sent[0]["model"] == "o3-mini"
+    assert "max_completion_tokens" in sent[0] and "max_tokens" not in sent[0]
+    assert "max_tokens" in sent[1] and "max_completion_tokens" not in sent[1]

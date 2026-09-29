@@ -2,9 +2,15 @@
 from __future__ import annotations
 
 import base64
+import re
 from typing import Dict, Optional
 
 from .base import LLMProvider
+
+
+def _is_o_series(model: str) -> bool:
+    """True for OpenAI o-series reasoning models (o1, o3-mini, o4-mini, ...)."""
+    return bool(re.match(r"o\d", model or ""))
 
 
 class OpenAICompatProvider(LLMProvider):
@@ -50,12 +56,15 @@ class OpenAICompatProvider(LLMProvider):
                 }
             )
         content.append({"type": "text", "text": prompt})
+        # o-series reasoning models reject max_tokens; the openai SDK documents
+        # max_completion_tokens (openai>=1.45) as the replacement.
+        limit = {"max_completion_tokens": 4096} if _is_o_series(model) else {"max_tokens": 4096}
         resp = self.client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": content},
             ],
-            max_tokens=4096,
+            **limit,
         )
         return resp.choices[0].message.content or ""
