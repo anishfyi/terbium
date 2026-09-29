@@ -1,5 +1,7 @@
 # The document taxonomy
 
+> The user-facing version of this taxonomy is published at https://velofy.co/terbium/taxonomy/. This file is kept as a developer note.
+
 A deep list of the PDF and PPTX documents that exist in the wild, grouped by
 **layout archetype**, because the archetype, not the filename or the business
 domain, decides which terbium lane can read it. Two documents with the same
