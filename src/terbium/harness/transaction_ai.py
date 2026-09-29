@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import List
+from typing import List, Tuple
 
 from . import router
 from .providers import text_provider
@@ -30,39 +30,45 @@ def _extract_json(raw: str):
         return None
 
 
-def enrich_transactions(records: List[Record], page_text: str, ai) -> List[Record]:
-    """Fill missing transaction fields via AI. Anthropic remains first-checked."""
+def enrich_transactions(records: List[Record], page_text: str, ai) -> Tuple[List[Record], bool]:
+    """Fill missing transaction fields via AI. Anthropic remains first-checked.
+
+    Returns ``(records, called)``. ``called`` is True only when a model call
+    returned a response, so callers can report AI use honestly.
+    """
     provider = text_provider(ai)
     if provider is None:
-        return records
+        return records, False
     tier = ai.force_tier or router.SONNET
-    if all(r.fields.get("total") for r in records if r.fields.get("record_type") == "header"):
-        return records
+    summaries = [r for r in records if r.fields.get("record_type") == "summary"]
+    if summaries and all(r.fields.get("total") for r in summaries):
+        return records, False
     prompt = f"Document text:\n{page_text[:4000]}\n\nExtract transaction fields as JSON."
     try:
         raw = provider.complete(prompt, SYSTEM, tier)
-        data = _extract_json(raw)
     except Exception:
-        return records
+        return records, False
+    data = _extract_json(raw)
     if not data:
-        return records
+        return records, True
     out: List[Record] = list(records)
     header_fields = {k: data[k] for k in ("number", "date", "vendor", "customer",
                                            "subtotal", "tax", "total") if data.get(k)}
     if header_fields:
-        found_header = False
-        for r in out:
-            if r.fields.get("record_type") == "header":
+        if summaries:
+            for r in summaries:
                 for k, v in header_fields.items():
-                    r.fields.setdefault(k, v)
-                found_header = True
-        if not found_header:
+                    if not r.fields.get(k):
+                        r.fields[k] = v
+        else:
             h = dict(header_fields)
-            h["record_type"] = "header"
+            h["record_type"] = "summary"
             out.insert(0, Record(sku=h.get("number"), fields=h, source_page=0,
                                  confidence=0.85, origin="ai",
-                                 reasons=["AI transaction header"]))
-    for item in data.get("line_items") or []:
+                                 reasons=["AI transaction summary"]))
+    # Only add AI line items when the parser found none, so rows are not doubled.
+    has_items = any(r.fields.get("record_type") == "line_item" for r in records)
+    for item in ([] if has_items else data.get("line_items") or []):
         if not item.get("description"):
             continue
         fields = dict(header_fields)
@@ -72,4 +78,4 @@ def enrich_transactions(records: List[Record], page_text: str, ai) -> List[Recor
             Record(sku=header_fields.get("number"), fields=fields, source_page=0,
                    confidence=0.8, origin="ai", reasons=["AI line item"])
         )
-    return out
+    return out, True
