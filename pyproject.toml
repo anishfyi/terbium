@@ -39,8 +39,10 @@ ai = [
 dev = ["pytest>=7"]
 
 [project.urls]
-Homepage = "https://anishfyi.github.io/terbium"
-Repository = "https://github.com/anishfyi/terbium"
+Homepage = "https://velofy.co/terbium/"
+Documentation = "https://velofy.co/terbium/"
+Repository = "https://github.com/velofy/terbium"
+Changelog = "https://velofy.co/terbium/changelog/"
 
 [project.scripts]
 terbium = "terbium.cli:main"
