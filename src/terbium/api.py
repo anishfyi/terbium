@@ -199,8 +199,8 @@ def parse(
         page_text = "\n".join(
             ln.text for p in pages for ln in _cl(p.words) if ln.text.strip()
         )
-        records = enrich_transactions(records, page_text, ai_cfg)
-        used_ai = True
+        records, called = enrich_transactions(records, page_text, ai_cfg)
+        used_ai = used_ai or called
 
     stats = Stats(
         total=len(records),

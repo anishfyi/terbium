@@ -23,7 +23,8 @@ def _fit_widths(widths: List[int], term: int) -> List[int]:
     cols = len(widths)
     w = list(widths)
     guard = 0
-    while sum(w) + 3 * (cols - 1) > term and guard < 10000:
+    # budget for the widest renderer (box table): "| " + " | " between + " |"
+    while sum(w) + 3 * cols + 1 > term and guard < 10000:
         j = w.index(max(w))
         if w[j] <= 6:
             break
@@ -33,19 +34,20 @@ def _fit_widths(widths: List[int], term: int) -> List[int]:
 
 
 def _cell(s, width: int) -> str:
+    """Fit ``s`` into exactly ``width`` characters or fewer, never more."""
     s = str(s)
     if len(s) <= width:
         return s
-    if width <= 1:
+    if width <= 3:
         return s[:width]
-    return s[: max(1, width - 1)] + "..."
+    return s[: width - 3] + "..."
 
 
 def _unicode_table(headers: Sequence[str], rows: Sequence[Sequence], widths: List[int]) -> str:
     top = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
     sep = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
     lines = [top]
-    lines.append("|" + "|".join(f" {str(h).ljust(widths[i])} " for i, h in enumerate(headers)) + "|")
+    lines.append("|" + "|".join(f" {_cell(h, widths[i]).ljust(widths[i])} " for i, h in enumerate(headers)) + "|")
     lines.append(sep)
     for r in rows:
         lines.append("|" + "|".join(
@@ -57,7 +59,7 @@ def _unicode_table(headers: Sequence[str], rows: Sequence[Sequence], widths: Lis
 
 
 def _ascii_table(headers: Sequence[str], rows: Sequence[Sequence], widths: List[int]) -> str:
-    out = [" | ".join(str(h).ljust(widths[i]) for i, h in enumerate(headers))]
+    out = [" | ".join(_cell(h, widths[i]).ljust(widths[i]) for i, h in enumerate(headers))]
     out.append("-+-".join("-" * w for w in widths))
     for r in rows:
         out.append(" | ".join(_cell(r[i] if i < len(r) else "", widths[i]).ljust(widths[i])
@@ -66,7 +68,7 @@ def _ascii_table(headers: Sequence[str], rows: Sequence[Sequence], widths: List[
 
 
 def _plain_columns(headers: Sequence[str], rows: Sequence[Sequence], widths: List[int]) -> str:
-    out = ["  ".join(str(h).ljust(widths[i]) for i, h in enumerate(headers))]
+    out = ["  ".join(_cell(h, widths[i]).ljust(widths[i]) for i, h in enumerate(headers))]
     for r in rows:
         out.append("  ".join(_cell(r[i] if i < len(r) else "", widths[i]).ljust(widths[i])
                              for i in range(len(headers))))
