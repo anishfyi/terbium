@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Moved to velofy.co/terbium/</title>
-<link rel="canonical" href="https://velofy.co/terbium/">
+<title>Moved to {{ page.redirect_to | remove: 'https://' }}</title>
+<link rel="canonical" href="{{ page.redirect_to }}">
 <meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0; url=https://velofy.co/terbium/">
-<script>location.replace('https://velofy.co/terbium/' + location.hash)</script>
+<meta http-equiv="refresh" content="0; url={{ page.redirect_to }}">
+<script>location.replace('{{ page.redirect_to }}' + location.hash)</script>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#faf9f5;color:#141413;font:16px/1.6 system-ui,sans-serif;padding:24px}a{color:#a8492a}@media(prefers-color-scheme:dark){body{background:#262624;color:#faf9f5}a{color:#d97757}}</style>
 </head>
-<body><p>These docs moved to <a href="https://velofy.co/terbium/">velofy.co/terbium/</a>.</p></body>
+<body><p>This page moved to <a href="{{ page.redirect_to }}">{{ page.redirect_to | remove: 'https://' }}</a>.</p></body>
 </html>
