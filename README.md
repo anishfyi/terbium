@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/velofy/terbium/main/assets/logo.png" width="150" alt="terbium: a periodic-table tile reading 65 Tb terbium">
+<a href="https://velofy.co/terbium/"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/velofy/terbium/main/assets/tile-dark.svg">
+    <img alt="terbium" src="https://raw.githubusercontent.com/velofy/terbium/main/assets/tile-light.svg" width="360">
+  </picture></a>
 
 # terbium
 
