@@ -28,14 +28,14 @@ terbium parses business documents (vendor catalogues first, plus invoices, recei
 <p align="center"><strong>Primary sponsor</strong></p>
 
 <p align="center">
-  <a href="https://go.nodemaven.com/terbiumGH" title="NodeMaven: best proxy for web scraping and automation">
+  <a href="https://go.nodemaven.com/terbiumreadmeoct" title="NodeMaven: best proxy for web scraping and automation">
     <img src="https://raw.githubusercontent.com/anishfyi/terbium/main/assets/sponsors/nodemaven-banner.jpg" alt="NodeMaven: best proxy for web scraping and automation with the highest quality IP" width="720">
   </a>
 </p>
 
-**[NodeMaven](https://go.nodemaven.com/terbiumGH)**: the most efficient proxy provider for web scraping and automation, with the highest quality IPs on the market.
+**[NodeMaven](https://go.nodemaven.com/terbiumreadmeoct)**: the most efficient proxy provider for web scraping and automation, with the highest quality IPs on the market.
 
-Why [NodeMaven](https://go.nodemaven.com/terbiumGH)?
+Why [NodeMaven](https://go.nodemaven.com/terbiumreadmeoct)?
 
 - ZIP targeting
 - 99.9% uptime
